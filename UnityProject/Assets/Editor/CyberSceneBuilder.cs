@@ -94,6 +94,39 @@ namespace CyberRush.Editor
             Debug.Log($"[CyberSceneBuilder] CYBER RUSH BUILD SUCCEEDED: {exePath}");
         }
 
+        [MenuItem("CyberRush/Build WebGL (docs/ for GitHub Pages)")]
+        public static void BuildWebGL()
+        {
+            string scenePath = "Assets/Scenes/CyberRush.unity";
+            if (!File.Exists(scenePath))
+                throw new System.Exception("CyberRush.unity does not exist yet. Run BuildAll first.");
+
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(scenePath, true) };
+            PlayerSettings.productName = "CYBER RUSH";
+            PlayerSettings.companyName = "kam2525-hub";
+            PlayerSettings.defaultWebScreenWidth = 1280;
+            PlayerSettings.defaultWebScreenHeight = 720;
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.dataCaching = true;
+
+            string docsDir = Path.GetFullPath(Path.Combine(Application.dataPath, "../../docs"));
+            if (Directory.Exists(docsDir)) Directory.Delete(docsDir, true);
+            Directory.CreateDirectory(docsDir);
+
+            var report = BuildPipeline.BuildPlayer(
+                new[] { scenePath },
+                docsDir,
+                BuildTarget.WebGL,
+                BuildOptions.None
+            );
+            if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+                throw new System.Exception($"WebGL build failed: {report.summary.result}");
+
+            File.WriteAllText(Path.Combine(docsDir, ".nojekyll"), "");
+            Debug.Log($"[CyberSceneBuilder] CYBER RUSH WEBGL BUILD SUCCEEDED: {docsDir}");
+        }
+
         private static GameObject BuildPlayerRig(string name, int playerId, Vector3 pos, Quaternion rot, bool isMainCamera, int selfBodyLayer)
         {
             var playerGo = new GameObject(name);

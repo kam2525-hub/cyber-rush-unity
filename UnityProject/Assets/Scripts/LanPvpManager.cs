@@ -1,10 +1,12 @@
 using System;
-using System.Collections.Concurrent;
 using System.Globalization;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using UnityEngine;
+#if !UNITY_WEBGL || UNITY_EDITOR
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
+#endif
 
 namespace CyberRush
 {
@@ -19,9 +21,11 @@ namespace CyberRush
         public int RemotePort { get; private set; } = 7777;
         public string TargetIp { get; private set; } = "127.0.0.1";
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         private UdpClient _udp;
         private IPEndPoint _remoteEndPoint;
         private readonly ConcurrentQueue<string> _incoming = new ConcurrentQueue<string>();
+#endif
         private float _sendTimer;
         private float _lastRecvTime;
         private int _pendingActionFlags;
@@ -60,6 +64,7 @@ namespace CyberRush
         public void StartHost(int port = 7777)
         {
             StopNetwork();
+#if !UNITY_WEBGL || UNITY_EDITOR
             try
             {
                 RemotePort = port;
@@ -77,11 +82,15 @@ namespace CyberRush
                 StatusText = $"HOST ERROR: {ex.Message}";
                 StopNetwork();
             }
+#else
+            StatusText = "WEBGL: UDP UNSUPPORTED";
+#endif
         }
 
         public void StartJoin(string ip, int port = 7777)
         {
             StopNetwork();
+#if !UNITY_WEBGL || UNITY_EDITOR
             try
             {
                 TargetIp = string.IsNullOrWhiteSpace(ip) ? "127.0.0.1" : ip.Trim();
@@ -100,22 +109,27 @@ namespace CyberRush
                 StatusText = $"JOIN ERROR: {ex.Message}";
                 StopNetwork();
             }
+#else
+            StatusText = "WEBGL: UDP UNSUPPORTED";
+#endif
         }
 
         public void StopNetwork()
         {
             IsRunning = false;
             IsConnected = false;
-            _remoteEndPoint = null;
             _lastProcessedPeerSeq = -1;
             _pendingActionFlags = 0;
             _pendingOutgoingDamage = 0;
+#if !UNITY_WEBGL || UNITY_EDITOR
+            _remoteEndPoint = null;
             while (_incoming.TryDequeue(out _)) { }
             if (_udp != null)
             {
                 try { _udp.Close(); } catch { }
                 _udp = null;
             }
+#endif
             if (RemoteAvatar != null) RemoteAvatar.gameObject.SetActive(false);
             StatusText = "DISCONNECTED";
         }
@@ -130,6 +144,7 @@ namespace CyberRush
             if (IsRunning && dmg > 0) _pendingOutgoingDamage += dmg;
         }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         private void OnUdpReceive(IAsyncResult ar)
         {
             if (_udp == null || !IsRunning) return;
@@ -149,11 +164,13 @@ namespace CyberRush
                 // Socket closed or transient UDP error
             }
         }
+#endif
 
         private void Update()
         {
             if (!IsRunning) return;
 
+#if !UNITY_WEBGL || UNITY_EDITOR
             while (_incoming.TryDequeue(out string msg))
             {
                 ParseIncoming(msg);
@@ -171,10 +188,12 @@ namespace CyberRush
                 _sendTimer = 0f;
                 SendLocalState();
             }
+#endif
         }
 
         private void SendLocalState()
         {
+#if !UNITY_WEBGL || UNITY_EDITOR
             if (_udp == null || _remoteEndPoint == null) return;
             var sm = StageManager.Instance;
             CyberParkourController p1 = sm != null ? sm.Player1 : null;
@@ -200,6 +219,7 @@ namespace CyberRush
                 _udp.Send(bytes, bytes.Length, _remoteEndPoint);
             }
             catch { }
+#endif
         }
 
         private void ParseIncoming(string msg)
@@ -226,7 +246,11 @@ namespace CyberRush
             if (!IsConnected)
             {
                 IsConnected = true;
+#if !UNITY_WEBGL || UNITY_EDITOR
                 StatusText = $"CONNECTED ({_remoteEndPoint?.Address})";
+#else
+                StatusText = "CONNECTED";
+#endif
                 CyberHUD.ShowCallout("LAN OPPONENT CONNECTED!", new Color(0.18f, 0.95f, 1f));
             }
 
