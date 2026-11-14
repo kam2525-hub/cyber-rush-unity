@@ -54,14 +54,12 @@ namespace CyberRush.Editor
             BuildBattleArena(360f);
             BuildNeonSkylineBackdrop();
 
-            // 3. Stage Manager, Rhythm Sync, Audio, LAN & HUD
+            // 3. Stage Manager, Audio, LAN & HUD
             var gm = new GameObject("CyberManagers");
             gm.AddComponent<CyberAudio>();
-            gm.AddComponent<CyberRhythm>();
             gm.AddComponent<LanPvpManager>();
-            var sm = gm.AddComponent<StageManager>();
+            gm.AddComponent<StageManager>();
             gm.AddComponent<CyberHUD>();
-            BuildSurvivalTemplates(sm, gm.transform);
 
             // 4. Save Scene & Build Standalone Executable
             Directory.CreateDirectory("Assets/Scenes");
@@ -277,10 +275,10 @@ namespace CyberRush.Editor
             gp.stageIndex = stageIdx;
         }
 
-        private static GameObject CreateEnemyObject(string fbxPath, string name, int stageIdx, EnemyKind kind, Vector3 pos, Quaternion rot, int hp = 1, bool isSurvival = false)
+        private static void SpawnCyberEnemy(string fbxPath, string name, int stageIdx, EnemyKind kind, Vector3 pos, Quaternion rot, int hp = 1)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
-            if (prefab == null) return null;
+            if (prefab == null) return;
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             go.name = name;
             go.transform.position = pos;
@@ -295,25 +293,6 @@ namespace CyberRush.Editor
             ai.stageIndex = stageIdx;
             ai.kind = kind;
             ai.maxHp = hp;
-            ai.isDynamicSurvivalEnemy = isSurvival;
-            return go;
-        }
-
-        private static void SpawnCyberEnemy(string fbxPath, string name, int stageIdx, EnemyKind kind, Vector3 pos, Quaternion rot, int hp = 1)
-        {
-            CreateEnemyObject(fbxPath, name, stageIdx, kind, pos, rot, hp, false);
-        }
-
-        private static void BuildSurvivalTemplates(StageManager sm, Transform parent)
-        {
-            sm.survivalDroneTemplate = CreateEnemyObject("Assets/Models/Cyber_Drone.fbx", "SurvivalTemplate_Drone", 4, EnemyKind.Drone, new Vector3(360f, -60f, 0f), Quaternion.identity, 1, true);
-            if (sm.survivalDroneTemplate != null) { sm.survivalDroneTemplate.transform.SetParent(parent); sm.survivalDroneTemplate.SetActive(false); }
-
-            sm.survivalTrooperTemplate = CreateEnemyObject("Assets/Models/Cyber_Trooper.fbx", "SurvivalTemplate_Trooper", 4, EnemyKind.Trooper, new Vector3(360f, -60f, 0f), Quaternion.identity, 1, true);
-            if (sm.survivalTrooperTemplate != null) { sm.survivalTrooperTemplate.transform.SetParent(parent); sm.survivalTrooperTemplate.SetActive(false); }
-
-            sm.survivalBossTemplate = CreateEnemyObject("Assets/Models/Cyber_CoreBoss.fbx", "SurvivalTemplate_Boss", 4, EnemyKind.CoreBoss, new Vector3(360f, -60f, 0f), Quaternion.identity, 3, true);
-            if (sm.survivalBossTemplate != null) { sm.survivalBossTemplate.transform.SetParent(parent); sm.survivalBossTemplate.SetActive(false); }
         }
 
         // =====================================================================

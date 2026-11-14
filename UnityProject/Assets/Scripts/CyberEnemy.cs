@@ -18,32 +18,24 @@ namespace CyberRush
         public float fireInterval = 2.1f;
         public float detectRange = 36f;
         public int maxHp = 1;
-        public bool isDynamicSurvivalEnemy = false;
 
         public bool IsDead { get; private set; }
         public int CurrentHp { get; private set; }
 
         private Vector3 _spawnPos;
         private Quaternion _spawnRot;
-        private Vector3 _baseScale = Vector3.one;
         private float _fireTimer;
         private Transform _player;
+        private int _pylonsRemaining;
 
         private void Start()
         {
             _spawnPos = transform.position;
             _spawnRot = transform.rotation;
-            _baseScale = transform.localScale;
             CurrentHp = maxHp;
             _fireTimer = Random.Range(0.5f, fireInterval);
-            var sm = StageManager.Instance;
-            if (sm != null && sm.Player1 != null)
-                _player = sm.Player1.transform;
-            else
-            {
-                var pc = FindFirstObjectByType<CyberParkourController>();
-                if (pc != null) _player = pc.transform;
-            }
+            var pc = FindFirstObjectByType<CyberParkourController>();
+            if (pc != null) _player = pc.transform;
         }
 
         public void ResetEnemy()
@@ -61,20 +53,12 @@ namespace CyberRush
 
         private void Update()
         {
-            if (IsDead) return;
-            if (_player == null && StageManager.Instance != null && StageManager.Instance.Player1 != null)
-                _player = StageManager.Instance.Player1.transform;
-            if (_player == null) return;
-
+            if (IsDead || _player == null) return;
             var sm = StageManager.Instance;
             if (sm != null)
             {
-                if (sm.ActiveMode == GameMode.MainMenu || sm.IsOverlayOpen) return;
-                if (sm.ActiveMode == GameMode.RhythmSurvival)
-                {
-                    if (!isDynamicSurvivalEnemy) return;
-                }
-                else if (sm.ActiveMode == GameMode.BossRush)
+                if (sm.ActiveMode == GameMode.MainMenu) return;
+                if (sm.ActiveMode == GameMode.BossRush)
                 {
                     if (stageIndex != 3) return;
                 }
@@ -84,29 +68,16 @@ namespace CyberRush
                 }
             }
 
-            // Visual Beat Sync Pulse!
-            float beatPulse = CyberRhythm.Instance != null ? CyberRhythm.Instance.BeatPulse : 0f;
-            transform.localScale = _baseScale * (1f + beatPulse * 0.14f);
-
             float dt = Time.deltaTime;
             Vector3 toPlayer = (_player.position + Vector3.up * 0.9f) - transform.position;
             float dist = toPlayer.magnitude;
 
             if (kind == EnemyKind.Drone)
             {
-                if (isDynamicSurvivalEnemy && dist > 6.5f)
-                {
-                    Vector3 approach = toPlayer.normalized;
-                    approach.y *= 0.35f;
-                    transform.position += approach * (7.2f * dt);
-                }
-                else if (!isDynamicSurvivalEnemy)
-                {
-                    float hover = Mathf.Sin(Time.time * 3.0f + _spawnPos.x) * 0.28f;
-                    Vector3 pos = _spawnPos;
-                    pos.y += hover;
-                    transform.position = pos;
-                }
+                float hover = Mathf.Sin(Time.time * 3.0f + _spawnPos.x) * 0.28f;
+                Vector3 pos = _spawnPos;
+                pos.y += hover;
+                transform.position = pos;
 
                 if (dist < detectRange)
                 {
@@ -117,11 +88,6 @@ namespace CyberRush
             }
             else if (kind == EnemyKind.Trooper)
             {
-                if (isDynamicSurvivalEnemy && dist > 4.5f)
-                {
-                    Vector3 step = new Vector3(toPlayer.x, 0f, toPlayer.z).normalized;
-                    transform.position += step * (5.2f * dt);
-                }
                 if (dist < detectRange)
                 {
                     Vector3 flatDir = new Vector3(toPlayer.x, 0f, toPlayer.z).normalized;
@@ -186,14 +152,15 @@ namespace CyberRush
             return true;
         }
 
-        public bool TakeSliceDamage(CyberParkourController attacker, int dmg = 1, BeatGrade beatGrade = BeatGrade.Good)
+        public bool TakeSliceDamage(CyberParkourController attacker, int dmg = 1)
         {
             if (IsDead) return false;
 
             if (!CanBeSliced())
             {
+                // Shielded feedback!
                 CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 2.2f, new Color(1f, 0.2f, 0.65f), 5.5f, 0.25f);
-                CyberHUD.ShowCallout("シールド展開中！ パイロンを破壊せよ", new Color(1f, 0.35f, 0.6f));
+                CyberHUD.ShowCallout("シールド展開中！ パイロン3基を破壊せよ", new Color(1f, 0.35f, 0.6f));
                 return false;
             }
 
@@ -208,35 +175,26 @@ namespace CyberRush
 
             IsDead = true;
             bool isBoss = kind == EnemyKind.CoreBoss;
-            bool onBeat = beatGrade != BeatGrade.OffBeat;
-            CyberAudio.Play(isBoss ? "boss_kill" : "kill_deluxe", isBoss ? 1.15f : (onBeat ? 1.08f : 0.90f), 0.04f);
+            CyberAudio.Play(isBoss ? "boss_kill" : "kill_deluxe", isBoss ? 1.15f : 1.0f, 0.04f);
             foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
 
-            Color fxCol = onBeat
-                ? new Color(0.18f, 0.98f, 1.0f)
-                : (kind == EnemyKind.Drone ? new Color(1.0f, 0.22f, 0.45f) : new Color(1.0f, 0.18f, 0.72f));
+            Color fxCol = kind == EnemyKind.Drone
+                ? new Color(1.0f, 0.22f, 0.45f)
+                : (kind == EnemyKind.ShieldPylon ? new Color(0.15f, 0.95f, 1.0f) : new Color(1.0f, 0.18f, 0.72f));
 
-            CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 1.2f, fxCol, isBoss ? 38 : (onBeat ? 24 : 16));
-            CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 1.0f, fxCol, isBoss ? 10.5f : (onBeat ? 6.2f : 4.6f), isBoss ? 0.55f : 0.34f);
+            CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 1.2f, fxCol, isBoss ? 36 : 20);
+            CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 1.0f, fxCol, isBoss ? 10.5f : 5.2f, isBoss ? 0.55f : 0.32f);
             CyberVFX.TriggerStylishKillSlowMo(isBoss);
-
-            CyberRhythm.Instance?.RegisterKillScore(beatGrade, isBoss);
 
             if (attacker != null)
             {
                 attacker.OnKillDashReset();
-                if (onBeat && attacker.isArenaFighter)
-                    attacker.HealArenaHp(isBoss ? 35 : 12);
             }
 
             if (StageManager.Instance != null)
             {
                 StageManager.Instance.RegisterKill(this);
-            }
-            if (isDynamicSurvivalEnemy)
-            {
-                Destroy(gameObject, 0.1f);
             }
             return true;
         }
