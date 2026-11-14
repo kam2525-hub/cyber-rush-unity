@@ -197,70 +197,88 @@ namespace CyberRush
         {
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
-            float panelW = 640f;
-            float panelH = _showControlsHelp ? 585f : 500f;
+            float panelW = 790f;
+            float panelH = _showControlsHelp ? 640f : 550f;
             Rect panelRect = new Rect(cx - panelW * 0.5f, cy - panelH * 0.5f, panelW, panelH);
 
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
             DrawOutlineBox(panelRect, new Color(0.16f, 0.92f, 1f, 0.85f), 2f);
 
-            float y = panelRect.y + 20f;
+            float y = panelRect.y + 16f;
             _headerStyle.normal.textColor = new Color(0.22f, 0.96f, 1f);
-            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 44), "CYBER RUSH // サイバー剣戟×銃撃", _headerStyle);
-            y += 42f;
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 42), "CYBER RUSH // サイバー剣戟×銃撃", _headerStyle);
+            y += 38f;
 
-            _subHeaderStyle.normal.textColor = new Color(0.80f, 0.88f, 0.98f);
-            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "一人称パルクール ・ 撃破スローモーション連撃 ・ カタナ＆銃アクション", _subHeaderStyle);
-            y += 34f;
+            _subHeaderStyle.normal.textColor = new Color(0.82f, 0.90f, 1f);
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22),
+                $"全{sm.stages.Count}ステージ ・ 撃破スローモーション連撃 ・ カタナ＆銃アクション  (クリア済 {sm.GetClearedCount()}/{sm.stages.Count})",
+                _subHeaderStyle);
+            y += 30f;
 
-            float bw = 520f;
+            float bw = 720f;
             float bx = cx - bw * 0.5f;
 
-            if (DrawAccentButton(new Rect(bx, y, bw, 46), "ステージ攻略スタート (STAGE 1 から通しプレイ)", new Color(0.16f, 0.95f, 1f)))
+            if (DrawAccentButton(new Rect(bx, y, bw, 42), "ステージ攻略スタート (STAGE 1 〜 全15ステージ通しプレイ)", new Color(0.16f, 0.95f, 1f)))
                 sm.StartParkour(1);
-            y += 56f;
+            y += 50f;
 
-            // Direct Stage Select Card (Stages 1 - 5)
-            Rect listBox = new Rect(bx, y, bw, 198f);
+            // Direct 15-Stage Grid (3 Columns x 5 Rows)
+            Rect listBox = new Rect(bx, y, bw, 272f);
             GUI.Box(listBox, GUIContent.none, _cardStyle);
             DrawOutlineBox(listBox, new Color(0.32f, 0.55f, 0.88f, 0.65f), 1f);
-            GUI.Label(new Rect(bx + 14, y + 6, 300, 22), "ステージ選択 (クリックで直接プレイ)", _labelStyle);
+            GUI.Label(new Rect(bx + 14, y + 6, 480, 22), "ステージ選択 (全15ステージ・どこからでも即プレイ可能)", _labelStyle);
 
-            float halfW = (bw - 36f) * 0.5f;
-            if (DrawAccentButton(new Rect(bx + 12, y + 32, halfW, 38), "STAGE 1: スカイライン", new Color(0.18f, 0.92f, 1f)))
-                sm.StartParkour(1);
-            if (DrawAccentButton(new Rect(bx + 24 + halfW, y + 32, halfW, 38), "STAGE 2: キャニオン", new Color(0.18f, 0.92f, 1f)))
-                sm.StartParkour(2);
+            string[] shortNames =
+            {
+                "01: スカイライン", "02: キャニオン", "03: アルコン尖塔 [BOSS]",
+                "04: キルチェイン回廊", "05: スカイフォートレス [BOSS]", "06: スカイライン裏ルート",
+                "07: ツインウォール峡谷", "08: エアリアル連撃", "09: レールガン回廊",
+                "10: 煉獄クライム [BOSS]", "11: キャニオン極", "12: 超キルチェイン15",
+                "13: ワイヤー空中橋", "14: ツインゲート分岐", "15: オメガシタデル [最終BOSS]"
+            };
 
-            if (DrawAccentButton(new Rect(bx + 12, y + 78, halfW, 38), "STAGE 3: アルコン尖塔 (BOSS)", new Color(1f, 0.35f, 0.78f)))
-                sm.StartParkour(3);
-            if (DrawAccentButton(new Rect(bx + 24 + halfW, y + 78, halfW, 38), "STAGE 4: キルチェイン回廊 [新]", new Color(0.25f, 0.98f, 0.65f)))
-                sm.StartParkour(4);
+            float colW = (bw - 44f) / 3f;
+            for (int i = 0; i < Mathf.Min(sm.stages.Count, shortNames.Length); i++)
+            {
+                int stageNum = i + 1;
+                int col = i % 3;
+                int row = i / 3;
+                float sx = bx + 12f + col * (colW + 10f);
+                float sy = y + 32f + row * 46f;
 
-            if (DrawAccentButton(new Rect(bx + 12, y + 124, bw - 24f, 44), "STAGE 5: スカイフォートレス決戦 [新・大量撃破＆ボス]", new Color(1f, 0.82f, 0.22f)))
-                sm.StartParkour(5);
-            y += 208f;
+                float best = sm.GetBestTime(stageNum);
+                string btnLabel = best > 0f ? $"★{shortNames[i]} ({best:0.0}s)" : shortNames[i];
+                Color accent = stageNum == 15
+                    ? new Color(1f, 0.82f, 0.22f)
+                    : (sm.HasBossInStage(stageNum) ? new Color(1f, 0.30f, 0.75f)
+                        : (best > 0f ? new Color(0.25f, 0.98f, 0.65f) : new Color(0.18f, 0.92f, 1f)));
 
-            if (DrawAccentButton(new Rect(bx, y, bw, 42), "BOSS RUSH // アルコンコア直接対決", new Color(1f, 0.24f, 0.68f)))
+                if (DrawAccentButton(new Rect(sx, sy, colW, 39f), btnLabel, accent))
+                    sm.StartParkour(stageNum);
+            }
+            y += 280f;
+
+            float halfW = (bw - 14f) * 0.5f;
+            if (DrawAccentButton(new Rect(bx, y, bw, 38), "BOSS RUSH // アルコンコア直接対決", new Color(1f, 0.24f, 0.68f)))
                 sm.StartBossRush();
-            y += 52f;
+            y += 46f;
 
             // Bottom Footer Buttons
             bool muted = CyberAudio.Instance != null && CyberAudio.Instance.IsMuted;
             string muteLabel = muted ? "音声: ミュート中 [M]" : "音声: ON [M]";
-            if (DrawAccentButton(new Rect(bx, y, halfW, 36), muteLabel, muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f)))
+            if (DrawAccentButton(new Rect(bx, y, halfW, 34), muteLabel, muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f)))
                 CyberAudio.Instance?.ToggleMute();
 
             string helpLabel = _showControlsHelp ? "操作ガイドを閉じる ▲" : "操作ガイドを見る ▼";
-            if (DrawAccentButton(new Rect(bx + 12 + halfW, y, halfW, 36), helpLabel, new Color(0.75f, 0.85f, 1f)))
+            if (DrawAccentButton(new Rect(bx + 14 + halfW, y, halfW, 34), helpLabel, new Color(0.75f, 0.85f, 1f)))
                 _showControlsHelp = !_showControlsHelp;
-            y += 46f;
+            y += 42f;
 
             if (_showControlsHelp)
             {
-                Rect helpRect = new Rect(bx, y, bw, 76);
+                Rect helpRect = new Rect(bx, y, bw, 74);
                 GUI.Box(helpRect, GUIContent.none, _cardStyle);
-                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 66),
+                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 64),
                     "【移動】WASD:移動 | Space:ジャンプ/壁走り | Shift/右クリ:ダッシュ/スローモ | E:ワイヤー\n" +
                     "【武器】[1]カタナ [2]サイバー銃 (ホイール切替) | [G]クイック銃撃 | [C]スライディング/空中急降下斬\n" +
                     "【技】左クリ:通常斬撃・弾き/射撃 | [Q]斬撃波/レールガン | [F]旋風斬/拡散ショット | [M]消音",
@@ -303,7 +321,7 @@ namespace CyberRush
                     GUI.color = Color.white;
                 }
             }
-            else if (sm.ActiveMode == GameMode.BossRush || (sm.ActiveMode == GameMode.Parkour && (sm.CurrentStage == 3 || sm.CurrentStage == 5)))
+            else if (sm.ActiveMode == GameMode.BossRush || (sm.ActiveMode == GameMode.Parkour && sm.HasBossInStage(sm.CurrentStage)))
             {
                 foreach (var en in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
                 {
@@ -347,7 +365,7 @@ namespace CyberRush
             GUI.Label(new Rect(150, 50, 145, 24), $"撃破:{sm.StageKills}  [ESC]メニュー", _smallLabelStyle);
 
             // Top-Center Objectives
-            if ((sm.ActiveMode == GameMode.Parkour && (sm.CurrentStage == 3 || sm.CurrentStage == 5)) || sm.ActiveMode == GameMode.BossRush)
+            if ((sm.ActiveMode == GameMode.Parkour && sm.HasBossInStage(sm.CurrentStage)) || sm.ActiveMode == GameMode.BossRush)
             {
                 int rem = sm.RemainingBossPylons();
                 Rect objRect = new Rect(cx - 210f, 14, 420, 40);

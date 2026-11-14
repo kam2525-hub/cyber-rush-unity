@@ -45,13 +45,23 @@ namespace CyberRush.Editor
             var p2 = BuildPlayerRig("CyberPlayer2", 1, new Vector3(360f, 2.2f, 20f), Quaternion.Euler(0f, 180f, 0f), false, selfBodyLayer: 9);
             p2.SetActive(false);
 
-            // 2. Build 5 High-Speed Parkour & Slow-Mo Action Stages
+            // 2. Build 15 High-Speed Parkour & Slow-Mo Action Stages
             BuildStage1(0f);
             BuildStage2(120f);
             BuildStage3(240f);
+            BuildBattleArena(360f);
             BuildStage4(480f);
             BuildStage5(600f);
-            BuildBattleArena(360f);
+            BuildStage6(720f);
+            BuildStage7(840f);
+            BuildStage8(960f);
+            BuildStage9(1080f);
+            BuildStage10(1200f);
+            BuildStage11(1320f);
+            BuildStage12(1440f);
+            BuildStage13(1560f);
+            BuildStage14(1680f);
+            BuildStage15(1800f);
             BuildNeonSkylineBackdrop();
 
             // 3. Stage Manager, Audio, LAN & HUD
@@ -459,6 +469,312 @@ namespace CyberRush.Editor
             SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_CitadelD2", 5, EnemyKind.Drone, new Vector3(ox + 8f, 15.2f, 105f), Quaternion.Euler(0, 180f, 0));
         }
 
+        private static void SpawnSquadEnemy(int stageIdx, string prefix, int idx, EnemyKind kind, Vector3 pos, int hp = 1)
+        {
+            string fbx = kind == EnemyKind.Drone ? "Assets/Models/Cyber_Drone.fbx"
+                : (kind == EnemyKind.CoreBoss ? "Assets/Models/Cyber_CoreBoss.fbx"
+                : (kind == EnemyKind.ShieldPylon ? "Assets/Models/Grapple_Anchor.fbx" : "Assets/Models/Cyber_Trooper.fbx"));
+            SpawnCyberEnemy(fbx, $"S{stageIdx}_{prefix}_{idx}", stageIdx, kind, pos, Quaternion.Euler(0, 180f, 0), hp);
+        }
+
+        // STAGE 6: SKYLINE ALTERNATE NIGHT RAID (UPPER GRAPPLE vs LOWER TROOPER GAUNTLET)
+        private static void BuildStage6(float ox)
+        {
+            CreateBlock("S6_Start", new Vector3(ox, 0f, 6f), new Vector3(11f, 2f, 20f), _gridCyan);
+            SpawnSquadEnemy(6, "T", 1, EnemyKind.Trooper, new Vector3(ox - 2f, 1.0f, 10f));
+            SpawnSquadEnemy(6, "D", 1, EnemyKind.Drone, new Vector3(ox + 2f, 3.4f, 14f));
+            SpawnJumpPad(new Vector3(ox - 2f, 1.05f, 14f), 17.5f);
+
+            // Upper Grapple Skyline Route
+            SpawnGrapple(new Vector3(ox - 4f, 11.5f, 32f));
+            SpawnSquadEnemy(6, "D", 2, EnemyKind.Drone, new Vector3(ox - 4f, 9.8f, 43f));
+            SpawnGrapple(new Vector3(ox - 4f, 12.5f, 54f));
+
+            // Lower Street Gauntlet Route
+            CreateBlock("S6_LowBridge", new Vector3(ox + 6.5f, 1.5f, 40f), new Vector3(8.5f, 1.8f, 36f), _gridMagenta);
+            SpawnSquadEnemy(6, "T", 2, EnemyKind.Trooper, new Vector3(ox + 5f, 2.5f, 30f));
+            SpawnSquadEnemy(6, "T", 3, EnemyKind.Trooper, new Vector3(ox + 8f, 2.5f, 39f));
+            SpawnSquadEnemy(6, "T", 4, EnemyKind.Trooper, new Vector3(ox + 6f, 2.5f, 49f));
+            SpawnJumpPad(new Vector3(ox + 6.5f, 2.5f, 55f), 14.5f);
+
+            // Converge Plaza + Dual Wall-Run Slow-Mo
+            CreateBlock("S6_MidPlaza", new Vector3(ox, 4.5f, 74f), new Vector3(16f, 2f, 20f), _gridCyan);
+            SpawnSquadEnemy(6, "T", 5, EnemyKind.Trooper, new Vector3(ox - 3.5f, 5.5f, 72f));
+            SpawnSquadEnemy(6, "T", 6, EnemyKind.Trooper, new Vector3(ox + 3.5f, 5.5f, 76f));
+            SpawnSquadEnemy(6, "D", 3, EnemyKind.Drone, new Vector3(ox, 8.2f, 75f));
+
+            CreateBlock("S6_WallL", new Vector3(ox - 5.6f, 8.5f, 102f), new Vector3(1.2f, 9f, 28f), _gridMagenta, isWallRun: true);
+            CreateBlock("S6_WallR", new Vector3(ox + 5.6f, 8.5f, 104f), new Vector3(1.2f, 9f, 28f), _gridMagenta, isWallRun: true);
+            SpawnSquadEnemy(6, "D", 4, EnemyKind.Drone, new Vector3(ox - 1.5f, 9.2f, 96f));
+            SpawnSquadEnemy(6, "D", 5, EnemyKind.Drone, new Vector3(ox + 1.5f, 9.6f, 106f));
+            SpawnSquadEnemy(6, "D", 6, EnemyKind.Drone, new Vector3(ox, 9.8f, 115f));
+
+            CreateBlock("S6_GoalRoof", new Vector3(ox, 7.5f, 134f), new Vector3(15f, 2.4f, 22f), _gridGold);
+            SpawnSquadEnemy(6, "T", 7, EnemyKind.Trooper, new Vector3(ox, 8.8f, 129f));
+            SpawnGoalPortal(6, new Vector3(ox, 8.7f, 140f));
+        }
+
+        // STAGE 7: TWIN-WALL SLOW-MO CANYON (4 ZIG-ZAG WALLS + AIR DRONE TAKEDOWNS)
+        private static void BuildStage7(float ox)
+        {
+            CreateBlock("S7_Start", new Vector3(ox, 0f, 5f), new Vector3(10f, 2f, 16f), _gridCyan);
+            SpawnJumpPad(new Vector3(ox, 1.05f, 11f), 17.0f);
+
+            float[] wallX = { -5.4f, 5.4f, -5.4f, 5.4f };
+            float[] wallZ = { 28f, 51f, 74f, 97f };
+            for (int i = 0; i < 4; i++)
+            {
+                float wy = 5.5f + i * 1.2f;
+                CreateBlock($"S7_Wall_{i}", new Vector3(ox + wallX[i], wy, wallZ[i]), new Vector3(1.2f, 9.5f, 24f), _gridMagenta, isWallRun: true);
+                SpawnSquadEnemy(7, "D", i + 1, EnemyKind.Drone, new Vector3(ox + wallX[i] * 0.35f, wy + 1.2f, wallZ[i] + 4f));
+            }
+
+            CreateBlock("S7_Deck", new Vector3(ox, 7.0f, 120f), new Vector3(15f, 2f, 22f), _gridCyan);
+            SpawnSquadEnemy(7, "T", 1, EnemyKind.Trooper, new Vector3(ox - 3.5f, 8.0f, 116f));
+            SpawnSquadEnemy(7, "T", 2, EnemyKind.Trooper, new Vector3(ox, 8.0f, 121f));
+            SpawnSquadEnemy(7, "T", 3, EnemyKind.Trooper, new Vector3(ox + 3.5f, 8.0f, 126f));
+
+            SpawnGrapple(new Vector3(ox, 15.0f, 140f));
+            CreateBlock("S7_Goal", new Vector3(ox, 9.5f, 158f), new Vector3(15f, 2.4f, 20f), _gridGold);
+            SpawnGoalPortal(7, new Vector3(ox, 10.7f, 164f));
+        }
+
+        // STAGE 8: AERIAL TRAMPOLINE CHAIN (HIGH-ALTITUDE JUMP PAD SLOW-MO)
+        private static void BuildStage8(float ox)
+        {
+            CreateBlock("S8_Start", new Vector3(ox, 0f, 6f), new Vector3(11f, 2f, 18f), _gridCyan);
+            SpawnJumpPad(new Vector3(ox, 1.05f, 13f), 19.5f);
+
+            for (int i = 0; i < 3; i++)
+            {
+                float iy = 6.5f + i * 6.5f;
+                float iz = 36f + i * 32f;
+                SpawnSquadEnemy(8, "DA", i * 2 + 1, EnemyKind.Drone, new Vector3(ox - 2.2f, iy + 2.5f, iz - 11f));
+                SpawnSquadEnemy(8, "DA", i * 2 + 2, EnemyKind.Drone, new Vector3(ox + 2.2f, iy + 2.8f, iz - 8f));
+
+                CreateBlock($"S8_Island_{i}", new Vector3(ox, iy, iz), new Vector3(14f, 2f, 18f), i == 2 ? _gridMagenta : _gridCyan);
+                SpawnSquadEnemy(8, "T", i * 2 + 1, EnemyKind.Trooper, new Vector3(ox - 3f, iy + 1.0f, iz - 2f));
+                SpawnSquadEnemy(8, "T", i * 2 + 2, EnemyKind.Trooper, new Vector3(ox + 3f, iy + 1.0f, iz + 2f));
+                SpawnJumpPad(new Vector3(ox, iy + 1.05f, iz + 6.5f), 20.5f);
+            }
+
+            CreateBlock("S8_Goal", new Vector3(ox, 25.0f, 132f), new Vector3(16f, 2.4f, 22f), _gridGold);
+            SpawnSquadEnemy(8, "DFinal", 1, EnemyKind.Drone, new Vector3(ox, 27.6f, 126f));
+            SpawnGoalPortal(8, new Vector3(ox, 26.2f, 138f));
+        }
+
+        // STAGE 9: RAILGUN SLALOM HIGHWAY (HIGH-SPEED LINEUP MULTI-KILLS)
+        private static void BuildStage9(float ox)
+        {
+            for (int s = 0; s < 3; s++)
+            {
+                float sz = 22f + s * 42f;
+                float sy = s * 1.8f;
+                CreateBlock($"S9_Hwy_{s}", new Vector3(ox, sy, sz), new Vector3(14f, 2f, 38f), s == 1 ? _gridMagenta : _gridCyan);
+                CreateBlock($"S9_SideWall_{s}", new Vector3(ox + (s % 2 == 0 ? -7.2f : 7.2f), sy + 4.5f, sz), new Vector3(1.2f, 7.5f, 34f), _gridMagenta, isWallRun: true);
+
+                // Line up 3 Troopers + 2 Drones in a satisfying Sword-Wave / Railgun row!
+                for (int e = 0; e < 3; e++)
+                    SpawnSquadEnemy(9, $"S{s}T", e + 1, EnemyKind.Trooper, new Vector3(ox + (e - 1) * 1.8f, sy + 1.0f, sz + e * 5f));
+                SpawnSquadEnemy(9, $"S{s}D", 1, EnemyKind.Drone, new Vector3(ox - 3.5f, sy + 3.8f, sz + 6f));
+                SpawnSquadEnemy(9, $"S{s}D", 2, EnemyKind.Drone, new Vector3(ox + 3.5f, sy + 3.8f, sz + 11f));
+
+                if (s < 2)
+                    CreateBlock($"S9_Ramp_{s}", new Vector3(ox, sy + 0.9f, sz + 21f), new Vector3(7f, 1f, 8f), _gridGold, rotEuler: new Vector3(-13f, 0f, 0f));
+            }
+
+            SpawnJumpPad(new Vector3(ox, 4.7f, 124f), 17.5f);
+            CreateBlock("S9_Goal", new Vector3(ox, 9.5f, 146f), new Vector3(16f, 2.4f, 22f), _gridGold);
+            SpawnGoalPortal(9, new Vector3(ox, 10.7f, 152f));
+        }
+
+        // STAGE 10: INFERNO CLIMB TOWER (VERTICAL SPIRAL + MINI-BOSS CITADEL)
+        private static void BuildStage10(float ox)
+        {
+            CreateBlock("S10_Base", new Vector3(ox, 0f, 5f), new Vector3(12f, 2f, 16f), _gridCyan);
+            SpawnJumpPad(new Vector3(ox + 2.5f, 1.05f, 10f), 17.5f);
+
+            CreateBlock("S10_Tier1", new Vector3(ox + 9f, 6.0f, 24f), new Vector3(13f, 2f, 16f), _gridCyan);
+            SpawnSquadEnemy(10, "T", 1, EnemyKind.Trooper, new Vector3(ox + 7f, 7.0f, 23f));
+            SpawnSquadEnemy(10, "T", 2, EnemyKind.Trooper, new Vector3(ox + 11f, 7.0f, 26f));
+            SpawnSquadEnemy(10, "D", 1, EnemyKind.Drone, new Vector3(ox + 9f, 9.4f, 28f));
+            SpawnJumpPad(new Vector3(ox + 5f, 7.05f, 29f), 18.0f);
+
+            CreateBlock("S10_Tier2", new Vector3(ox - 2f, 12.0f, 43f), new Vector3(14f, 2f, 16f), _gridMagenta);
+            SpawnSquadEnemy(10, "T", 3, EnemyKind.Trooper, new Vector3(ox - 4f, 13.0f, 43f));
+            SpawnSquadEnemy(10, "D", 2, EnemyKind.Drone, new Vector3(ox + 1f, 15.2f, 46f));
+            SpawnGrapple(new Vector3(ox, 19.5f, 58f));
+
+            CreateBlock("S10_MiniBossArena", new Vector3(ox, 15.0f, 78f), new Vector3(32f, 2.4f, 32f), _gridMagenta);
+            SpawnSquadEnemy(10, "MiniArchonBoss", 1, EnemyKind.CoreBoss, new Vector3(ox, 16.8f, 81f), hp: 6);
+            Vector3[] p10 = { new Vector3(ox - 13f, 18.0f, 78f), new Vector3(ox + 13f, 18.0f, 78f) };
+            for (int i = 0; i < p10.Length; i++)
+            {
+                CreateBlock($"S10_PylonPlat_{i}", p10[i], new Vector3(6.5f, 1.5f, 6.5f), _gridGold);
+                SpawnSquadEnemy(10, "Pylon", i + 1, EnemyKind.ShieldPylon, p10[i] + new Vector3(0f, 2.1f, 0f));
+                SpawnGrapple(p10[i] + new Vector3(0f, 5.2f, -3f));
+            }
+            SpawnSquadEnemy(10, "DG", 1, EnemyKind.Drone, new Vector3(ox - 6f, 18.0f, 72f));
+            SpawnSquadEnemy(10, "DG", 2, EnemyKind.Drone, new Vector3(ox + 6f, 18.0f, 72f));
+        }
+
+        // STAGE 11: CYBER CANYON HARD REMIX (TRIPLE GRAPPLE ABYSS + SNIPER DRONES)
+        private static void BuildStage11(float ox)
+        {
+            CreateBlock("S11_Start", new Vector3(ox, 0f, 6f), new Vector3(9f, 2f, 18f), _gridCyan);
+            CreateBlock("S11_W1", new Vector3(ox - 5.4f, 4.8f, 25f), new Vector3(1.2f, 8.5f, 22f), _gridMagenta, isWallRun: true);
+            SpawnSquadEnemy(11, "D", 1, EnemyKind.Drone, new Vector3(ox - 1.5f, 6.2f, 30f));
+            CreateBlock("S11_W2", new Vector3(ox + 5.4f, 6.8f, 47f), new Vector3(1.2f, 8.5f, 22f), _gridMagenta, isWallRun: true);
+
+            // Triple Grapple Swing with Aerial Drones
+            SpawnGrapple(new Vector3(ox, 12.5f, 68f));
+            SpawnSquadEnemy(11, "D", 2, EnemyKind.Drone, new Vector3(ox - 2.5f, 10.5f, 78f));
+            SpawnGrapple(new Vector3(ox - 3.5f, 14.0f, 88f));
+            SpawnSquadEnemy(11, "D", 3, EnemyKind.Drone, new Vector3(ox + 2.5f, 11.5f, 98f));
+            SpawnGrapple(new Vector3(ox + 3.5f, 15.5f, 108f));
+
+            CreateBlock("S11_FortDeck", new Vector3(ox, 8.5f, 127f), new Vector3(14f, 2f, 20f), _gridCyan);
+            for (int i = 0; i < 4; i++)
+                SpawnSquadEnemy(11, "T", i + 1, EnemyKind.Trooper, new Vector3(ox + (i - 1.5f) * 2.8f, 9.5f, 124f + (i % 2) * 4f));
+            SpawnJumpPad(new Vector3(ox, 9.55f, 134f), 20.0f);
+
+            CreateBlock("S11_WallFinalL", new Vector3(ox - 5.5f, 15.5f, 152f), new Vector3(1.2f, 9f, 22f), _gridMagenta, isWallRun: true);
+            CreateBlock("S11_Goal", new Vector3(ox, 17.5f, 173f), new Vector3(15f, 2.4f, 20f), _gridGold);
+            SpawnGoalPortal(11, new Vector3(ox, 18.7f, 179f));
+        }
+
+        // STAGE 12: KILL-CHAIN EXTREME (15+ DENSE ENEMIES FOR NONSTOP SLOW-MO RUSH)
+        private static void BuildStage12(float ox)
+        {
+            CreateBlock("S12_Entry", new Vector3(ox, 0f, 8f), new Vector3(13f, 2f, 24f), _gridCyan);
+            SpawnSquadEnemy(12, "T", 1, EnemyKind.Trooper, new Vector3(ox - 3f, 1.0f, 10f));
+            SpawnSquadEnemy(12, "T", 2, EnemyKind.Trooper, new Vector3(ox + 3f, 1.0f, 12f));
+            SpawnSquadEnemy(12, "D", 1, EnemyKind.Drone, new Vector3(ox, 3.6f, 15f));
+            SpawnJumpPad(new Vector3(ox, 1.05f, 17.5f), 17.5f);
+
+            CreateBlock("S12_WallL", new Vector3(ox - 6.0f, 6.8f, 36f), new Vector3(1.2f, 9.5f, 26f), _gridMagenta, isWallRun: true);
+            CreateBlock("S12_WallR", new Vector3(ox + 6.0f, 6.8f, 44f), new Vector3(1.2f, 9.5f, 26f), _gridMagenta, isWallRun: true);
+            for (int i = 0; i < 4; i++)
+                SpawnSquadEnemy(12, "D", i + 2, EnemyKind.Drone, new Vector3(ox + (i % 2 == 0 ? -2.2f : 2.2f), 7.6f + i * 0.35f, 28f + i * 8f));
+
+            CreateBlock("S12_RushBridge", new Vector3(ox, 5.5f, 80f), new Vector3(16f, 2f, 42f), _gridCyan);
+            for (int i = 0; i < 6; i++)
+            {
+                float z = 64f + i * 6f;
+                float x = ox + ((i % 3) - 1) * 3.8f;
+                SpawnSquadEnemy(12, "R", i + 1, i % 2 == 0 ? EnemyKind.Trooper : EnemyKind.Drone, new Vector3(x, i % 2 == 0 ? 6.5f : 8.8f, z));
+            }
+
+            SpawnGrapple(new Vector3(ox, 13.5f, 110f));
+            SpawnSquadEnemy(12, "DF", 1, EnemyKind.Drone, new Vector3(ox - 2f, 11.2f, 118f));
+            SpawnSquadEnemy(12, "DF", 2, EnemyKind.Drone, new Vector3(ox + 2f, 11.2f, 122f));
+            SpawnGrapple(new Vector3(ox, 14.5f, 130f));
+
+            CreateBlock("S12_Goal", new Vector3(ox, 9.0f, 148f), new Vector3(16f, 2.4f, 22f), _gridGold);
+            SpawnSquadEnemy(12, "TL", 1, EnemyKind.Trooper, new Vector3(ox - 2.5f, 10.2f, 142f));
+            SpawnSquadEnemy(12, "TL", 2, EnemyKind.Trooper, new Vector3(ox + 2.5f, 10.2f, 142f));
+            SpawnGoalPortal(12, new Vector3(ox, 10.2f, 154f));
+        }
+
+        // STAGE 13: GRAPPLE SKYBRIDGE (5 SEQUENTIAL AIR WIRE SWINGS)
+        private static void BuildStage13(float ox)
+        {
+            CreateBlock("S13_Start", new Vector3(ox, 2.0f, 5f), new Vector3(11f, 2f, 16f), _gridCyan);
+            SpawnJumpPad(new Vector3(ox, 3.05f, 11f), 17.5f);
+
+            for (int i = 0; i < 5; i++)
+            {
+                float gz = 28f + i * 22f;
+                float gx = ox + (i % 2 == 0 ? -3.0f : 3.0f);
+                SpawnGrapple(new Vector3(gx, 14.5f + (i % 2) * 1.5f, gz));
+                SpawnSquadEnemy(13, "D", i + 1, EnemyKind.Drone, new Vector3(ox, 11.5f, gz + 8f));
+                if (i == 1 || i == 3)
+                {
+                    CreateBlock($"S13_Pad_{i}", new Vector3(ox, 6.5f, gz + 6f), new Vector3(9f, 1.8f, 10f), _gridMagenta);
+                    SpawnSquadEnemy(13, "T", i + 1, EnemyKind.Trooper, new Vector3(ox, 7.6f, gz + 6f));
+                }
+            }
+
+            CreateBlock("S13_Goal", new Vector3(ox, 10.0f, 144f), new Vector3(16f, 2.4f, 22f), _gridGold);
+            SpawnSquadEnemy(13, "T", 9, EnemyKind.Trooper, new Vector3(ox, 11.2f, 139f));
+            SpawnGoalPortal(13, new Vector3(ox, 11.2f, 150f));
+        }
+
+        // STAGE 14: TWIN GATE DUAL ROUTE (LEFT KATANA MELEE STREET vs RIGHT SKY GRAPPLE)
+        private static void BuildStage14(float ox)
+        {
+            CreateBlock("S14_Start", new Vector3(ox, 0f, 6f), new Vector3(16f, 2f, 18f), _gridCyan);
+
+            // Left Route: Katana Melee Street
+            CreateBlock("S14_LeftDeck", new Vector3(ox - 10f, 2.0f, 48f), new Vector3(9f, 2f, 64f), _gridMagenta);
+            CreateBlock("S14_LeftWall", new Vector3(ox - 15f, 6.0f, 52f), new Vector3(1.2f, 8f, 44f), _gridCyan, isWallRun: true);
+            for (int i = 0; i < 5; i++)
+                SpawnSquadEnemy(14, "LT", i + 1, EnemyKind.Trooper, new Vector3(ox - 10f + (i % 2 == 0 ? -1.8f : 1.8f), 3.0f, 26f + i * 11f));
+            SpawnJumpPad(new Vector3(ox - 10f, 3.05f, 76f), 17.0f);
+
+            // Right Route: Sky Grapple & Aerial Blaster
+            SpawnJumpPad(new Vector3(ox + 5.5f, 1.05f, 12f), 18.0f);
+            SpawnGrapple(new Vector3(ox + 10f, 13.5f, 34f));
+            SpawnSquadEnemy(14, "RD", 1, EnemyKind.Drone, new Vector3(ox + 10f, 11.2f, 45f));
+            CreateBlock("S14_RightIsland", new Vector3(ox + 10f, 6.5f, 58f), new Vector3(9f, 1.8f, 16f), _gridCyan);
+            SpawnSquadEnemy(14, "RD", 2, EnemyKind.Drone, new Vector3(ox + 10f, 9.5f, 60f));
+            SpawnGrapple(new Vector3(ox + 10f, 14.0f, 78f));
+
+            // Convergence Arena + Final Stretch
+            CreateBlock("S14_Converge", new Vector3(ox, 6.0f, 102f), new Vector3(24f, 2.2f, 26f), _gridCyan);
+            for (int i = 0; i < 4; i++)
+                SpawnSquadEnemy(14, "CT", i + 1, EnemyKind.Trooper, new Vector3(ox + (i - 1.5f) * 4f, 7.2f, 102f));
+            SpawnSquadEnemy(14, "CD", 1, EnemyKind.Drone, new Vector3(ox - 5f, 10.2f, 106f));
+            SpawnSquadEnemy(14, "CD", 2, EnemyKind.Drone, new Vector3(ox + 5f, 10.2f, 106f));
+
+            SpawnGrapple(new Vector3(ox, 14.0f, 124f));
+            CreateBlock("S14_Goal", new Vector3(ox, 9.0f, 144f), new Vector3(16f, 2.4f, 22f), _gridGold);
+            SpawnGoalPortal(14, new Vector3(ox, 10.2f, 150f));
+        }
+
+        // STAGE 15: OMEGA CITADEL (FINAL 4-PYLON FORTRESS & OMEGA ARCHON CORE)
+        private static void BuildStage15(float ox)
+        {
+            CreateBlock("S15_Beachhead", new Vector3(ox, 0f, 8f), new Vector3(14f, 2f, 22f), _gridCyan);
+            SpawnSquadEnemy(15, "T", 1, EnemyKind.Trooper, new Vector3(ox - 3.5f, 1.0f, 10f));
+            SpawnSquadEnemy(15, "T", 2, EnemyKind.Trooper, new Vector3(ox + 3.5f, 1.0f, 10f));
+            SpawnSquadEnemy(15, "D", 1, EnemyKind.Drone, new Vector3(ox, 3.6f, 14f));
+            SpawnJumpPad(new Vector3(ox, 1.05f, 16f), 19.5f);
+
+            // Outer Battlement
+            CreateBlock("S15_OuterDeck", new Vector3(ox, 6.5f, 40f), new Vector3(16f, 2f, 26f), _gridCyan);
+            for (int i = 0; i < 4; i++)
+                SpawnSquadEnemy(15, "OT", i + 1, EnemyKind.Trooper, new Vector3(ox + (i % 2 == 0 ? -4f : 4f), 7.5f, 32f + i * 5f));
+            SpawnSquadEnemy(15, "OD", 1, EnemyKind.Drone, new Vector3(ox, 10.4f, 41f));
+
+            // Dual Wall Approach & Grapple Leap
+            CreateBlock("S15_WallL", new Vector3(ox - 6.2f, 12.0f, 66f), new Vector3(1.2f, 9.5f, 24f), _gridMagenta, isWallRun: true);
+            CreateBlock("S15_WallR", new Vector3(ox + 6.2f, 12.0f, 66f), new Vector3(1.2f, 9.5f, 24f), _gridMagenta, isWallRun: true);
+            SpawnGrapple(new Vector3(ox, 17.5f, 85f));
+
+            // Grand Omega Citadel Arena + 4 Shield Pylons + Omega CoreBoss
+            CreateBlock("S15_OmegaArena", new Vector3(ox, 10.0f, 118f), new Vector3(42f, 2.8f, 42f), _gridMagenta);
+            SpawnSquadEnemy(15, "OmegaArchonBoss", 1, EnemyKind.CoreBoss, new Vector3(ox, 11.8f, 122f), hp: 12);
+
+            Vector3[] p15 =
+            {
+                new Vector3(ox - 17f, 13.5f, 106f),
+                new Vector3(ox + 17f, 13.5f, 106f),
+                new Vector3(ox - 17f, 14.5f, 132f),
+                new Vector3(ox + 17f, 14.5f, 132f),
+            };
+            for (int i = 0; i < p15.Length; i++)
+            {
+                CreateBlock($"S15_PylonPlat_{i}", p15[i], new Vector3(7f, 1.6f, 7f), _gridGold);
+                SpawnSquadEnemy(15, "Pylon", i + 1, EnemyKind.ShieldPylon, p15[i] + new Vector3(0f, 2.2f, 0f));
+                SpawnGrapple(p15[i] + new Vector3(0f, 5.4f, -3f));
+            }
+            SpawnSquadEnemy(15, "CD", 1, EnemyKind.Drone, new Vector3(ox - 9f, 14.2f, 114f));
+            SpawnSquadEnemy(15, "CD", 2, EnemyKind.Drone, new Vector3(ox + 9f, 14.2f, 114f));
+            SpawnSquadEnemy(15, "CT", 1, EnemyKind.Trooper, new Vector3(ox - 7f, 11.5f, 104f));
+            SpawnSquadEnemy(15, "CT", 2, EnemyKind.Trooper, new Vector3(ox + 7f, 11.5f, 104f));
+        }
+
         // =====================================================================
         // STAGE 4: CYBER COMBAT ARENA (VS CPU, LOCAL 2P SPLIT-SCREEN & LAN PVP)
         // =====================================================================
@@ -551,15 +867,16 @@ namespace CyberRush.Editor
         private static void BuildNeonSkylineBackdrop()
         {
             Random.InitState(2077);
-            float[] stageCentersX = { 0f, 120f, 240f, 360f, 480f, 600f };
-            foreach (float sx in stageCentersX)
+            for (int slot = 0; slot <= 15; slot++)
             {
-                for (int i = 0; i < 24; i++)
+                float sx = slot * 120f;
+                bool isArena = Mathf.Approximately(sx, 360f);
+                for (int i = 0; i < 16; i++)
                 {
                     float side = (i % 2 == 0) ? -1f : 1f;
-                    float tx = sx + side * Random.Range(32f, 70f);
-                    float tz = sx > 300f ? Random.Range(-45f, 45f) : Random.Range(-25f, 180f);
-                    float h = Random.Range(45f, 115f);
+                    float tx = sx + side * Random.Range(32f, 68f);
+                    float tz = isArena ? Random.Range(-45f, 45f) : Random.Range(-20f, 195f);
+                    float h = Random.Range(48f, 120f);
                     float w = Random.Range(9f, 20f);
                     CreateBlock($"CityTower_{sx}_{i}", new Vector3(tx, h * 0.35f - 28f, tz), new Vector3(w, h, w), _cityTowerMat);
                 }

@@ -45,6 +45,7 @@ namespace CyberRush
         public CyberParkourController Player2 { get; private set; }
 
         private readonly Dictionary<int, float> _bestTimes = new Dictionary<int, float>();
+        private readonly HashSet<int> _bossStages = new HashSet<int>();
         private CyberBotAI[] _bots;
         private int _arenaBotsKilledCount;
 
@@ -65,6 +66,11 @@ namespace CyberRush
             }
             _bots = FindObjectsByType<CyberBotAI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
+            foreach (var e in FindObjectsByType<CyberEnemy>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (e.kind == EnemyKind.CoreBoss) _bossStages.Add(e.stageIndex);
+            }
+
             var remote = FindFirstObjectByType<RemotePvpAvatar>(FindObjectsInactive.Include);
             if (remote != null && LanPvpManager.Instance != null)
                 LanPvpManager.Instance.SetRemoteAvatar(remote);
@@ -73,9 +79,19 @@ namespace CyberRush
             {
                 stages.Add(new StageConfig { stageName = "STAGE 1 // ネオンスカイライン", spawnPosition = new Vector3(0f, 2.0f, 0f), sRankTime = 18f, aRankTime = 28f });
                 stages.Add(new StageConfig { stageName = "STAGE 2 // サイバーキャニオン", spawnPosition = new Vector3(120f, 2.0f, 0f), sRankTime = 22f, aRankTime = 34f });
-                stages.Add(new StageConfig { stageName = "STAGE 3 // アルコン尖塔", spawnPosition = new Vector3(240f, 2.0f, 0f), sRankTime = 28f, aRankTime = 42f });
+                stages.Add(new StageConfig { stageName = "STAGE 3 // アルコン尖塔 (BOSS)", spawnPosition = new Vector3(240f, 2.0f, 0f), sRankTime = 28f, aRankTime = 42f });
                 stages.Add(new StageConfig { stageName = "STAGE 4 // キルチェイン回廊", spawnPosition = new Vector3(480f, 2.0f, 0f), sRankTime = 26f, aRankTime = 40f });
-                stages.Add(new StageConfig { stageName = "STAGE 5 // スカイフォートレス", spawnPosition = new Vector3(600f, 2.0f, 0f), sRankTime = 36f, aRankTime = 55f });
+                stages.Add(new StageConfig { stageName = "STAGE 5 // スカイフォートレス (BOSS)", spawnPosition = new Vector3(600f, 2.0f, 0f), sRankTime = 36f, aRankTime = 55f });
+                stages.Add(new StageConfig { stageName = "STAGE 6 // スカイライン裏ルート", spawnPosition = new Vector3(720f, 2.0f, 0f), sRankTime = 24f, aRankTime = 38f });
+                stages.Add(new StageConfig { stageName = "STAGE 7 // ツインウォール峡谷", spawnPosition = new Vector3(840f, 2.0f, 0f), sRankTime = 26f, aRankTime = 40f });
+                stages.Add(new StageConfig { stageName = "STAGE 8 // エアリアル連撃", spawnPosition = new Vector3(960f, 2.0f, 0f), sRankTime = 24f, aRankTime = 38f });
+                stages.Add(new StageConfig { stageName = "STAGE 9 // レールガン回廊", spawnPosition = new Vector3(1080f, 2.0f, 0f), sRankTime = 25f, aRankTime = 40f });
+                stages.Add(new StageConfig { stageName = "STAGE 10 // 煉獄クライム (BOSS)", spawnPosition = new Vector3(1200f, 2.0f, 0f), sRankTime = 34f, aRankTime = 52f });
+                stages.Add(new StageConfig { stageName = "STAGE 11 // キャニオン極", spawnPosition = new Vector3(1320f, 2.0f, 0f), sRankTime = 28f, aRankTime = 44f });
+                stages.Add(new StageConfig { stageName = "STAGE 12 // 超キルチェイン15", spawnPosition = new Vector3(1440f, 2.0f, 0f), sRankTime = 30f, aRankTime = 48f });
+                stages.Add(new StageConfig { stageName = "STAGE 13 // ワイヤー空中橋", spawnPosition = new Vector3(1560f, 4.0f, 0f), sRankTime = 26f, aRankTime = 42f });
+                stages.Add(new StageConfig { stageName = "STAGE 14 // ツインゲート分岐", spawnPosition = new Vector3(1680f, 2.0f, 0f), sRankTime = 28f, aRankTime = 44f });
+                stages.Add(new StageConfig { stageName = "STAGE 15 // オメガシタデル (最終BOSS)", spawnPosition = new Vector3(1800f, 2.0f, 0f), sRankTime = 44f, aRankTime = 68f });
             }
 
             OpenMainMenu();
@@ -96,6 +112,8 @@ namespace CyberRush
         }
 
         public float GetBestTime(int stage) => _bestTimes.TryGetValue(stage, out float t) ? t : 0f;
+        public bool HasBossInStage(int stage) => _bossStages.Contains(stage);
+        public int GetClearedCount() => _bestTimes.Count;
 
         private void CleanupProjectilesAndToggleArenaActors(bool enableBots, bool enableP2, bool enableRemote)
         {
