@@ -1,0 +1,198 @@
+using System.Collections;
+using UnityEngine;
+
+namespace CyberRush
+{
+    public enum EnemyKind
+    {
+        Drone,
+        Trooper,
+        ShieldPylon,
+        CoreBoss
+    }
+
+    public class CyberEnemy : MonoBehaviour
+    {
+        public EnemyKind kind = EnemyKind.Drone;
+        public int stageIndex = 1;
+        public float fireInterval = 2.1f;
+        public float detectRange = 36f;
+        public int maxHp = 1;
+
+        public bool IsDead { get; private set; }
+        public int CurrentHp { get; private set; }
+
+        private Vector3 _spawnPos;
+        private Quaternion _spawnRot;
+        private float _fireTimer;
+        private Transform _player;
+        private int _pylonsRemaining;
+
+        private void Start()
+        {
+            _spawnPos = transform.position;
+            _spawnRot = transform.rotation;
+            CurrentHp = maxHp;
+            _fireTimer = Random.Range(0.5f, fireInterval);
+            var pc = FindFirstObjectByType<CyberParkourController>();
+            if (pc != null) _player = pc.transform;
+        }
+
+        public void ResetEnemy()
+        {
+            IsDead = false;
+            CurrentHp = maxHp;
+            transform.position = _spawnPos;
+            transform.rotation = _spawnRot;
+            foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = true;
+            foreach (var c in GetComponentsInChildren<Collider>(true)) c.enabled = true;
+            _fireTimer = Random.Range(0.4f, fireInterval);
+        }
+
+        private void Update()
+        {
+            if (IsDead || _player == null) return;
+            var sm = StageManager.Instance;
+            if (sm != null)
+            {
+                if (sm.ActiveMode == GameMode.MainMenu) return;
+                if (sm.ActiveMode == GameMode.BossRush)
+                {
+                    if (stageIndex != 3) return;
+                }
+                else if (sm.CurrentStage != stageIndex)
+                {
+                    return;
+                }
+            }
+
+            float dt = Time.deltaTime;
+            Vector3 toPlayer = (_player.position + Vector3.up * 0.9f) - transform.position;
+            float dist = toPlayer.magnitude;
+
+            if (kind == EnemyKind.Drone)
+            {
+                float hover = Mathf.Sin(Time.time * 3.0f + _spawnPos.x) * 0.28f;
+                Vector3 pos = _spawnPos;
+                pos.y += hover;
+                transform.position = pos;
+
+                if (dist < detectRange)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(toPlayer.normalized);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, 6f * dt);
+                    TryShoot(toPlayer.normalized, dt);
+                }
+            }
+            else if (kind == EnemyKind.Trooper)
+            {
+                if (dist < detectRange)
+                {
+                    Vector3 flatDir = new Vector3(toPlayer.x, 0f, toPlayer.z).normalized;
+                    if (flatDir.sqrMagnitude > 0.001f)
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flatDir), 7f * dt);
+                    TryShoot(toPlayer.normalized, dt);
+                }
+            }
+            else if (kind == EnemyKind.ShieldPylon)
+            {
+                transform.Rotate(Vector3.up, 75f * dt);
+            }
+            else if (kind == EnemyKind.CoreBoss)
+            {
+                transform.Rotate(Vector3.up, 42f * dt);
+                if (dist < 42f)
+                {
+                    TryShoot(toPlayer.normalized, dt);
+                }
+            }
+        }
+
+        private void TryShoot(Vector3 dir, float dt)
+        {
+            _fireTimer -= dt;
+            if (_fireTimer > 0f) return;
+            _fireTimer = kind == EnemyKind.CoreBoss ? 1.1f : fireInterval;
+
+            Vector3 muzzle = transform.position + Vector3.up * (kind == EnemyKind.Trooper ? 1.45f : (kind == EnemyKind.CoreBoss ? 2.4f : 1.15f)) + dir * 0.9f;
+            SpawnBolt(muzzle, dir);
+        }
+
+        private void SpawnBolt(Vector3 pos, Vector3 dir)
+        {
+            GameObject bolt = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            bolt.name = "EnemyPlasmaBolt";
+            bolt.transform.position = pos;
+            bolt.transform.localScale = Vector3.one * 0.42f;
+            var sc = bolt.GetComponent<SphereCollider>();
+            sc.isTrigger = true;
+            sc.radius = 0.85f;
+
+            var mr = bolt.GetComponent<MeshRenderer>();
+            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            Material m = new Material(Shader.Find("Custom/CyberHardSurface") ?? Shader.Find("Sprites/Default"));
+            Color crimson = new Color(1.0f, 0.14f, 0.22f);
+            m.SetColor("_Color", crimson);
+            if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", crimson * 4.5f);
+            mr.sharedMaterial = m;
+
+            var proj = bolt.AddComponent<CyberProjectile>();
+            proj.Init(dir, kind == EnemyKind.CoreBoss ? 22f : 16f, this);
+        }
+
+        public bool CanBeSliced()
+        {
+            if (IsDead) return false;
+            if (kind == EnemyKind.CoreBoss)
+            {
+                return StageManager.Instance == null || StageManager.Instance.AreBossPylonsCleared();
+            }
+            return true;
+        }
+
+        public bool TakeSliceDamage(CyberParkourController attacker, int dmg = 1)
+        {
+            if (IsDead) return false;
+
+            if (!CanBeSliced())
+            {
+                // Shielded feedback!
+                CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 2.2f, new Color(1f, 0.2f, 0.65f), 5.5f, 0.25f);
+                CyberHUD.ShowCallout("SHIELDED! DESTROY 3 PYLONS", new Color(1f, 0.35f, 0.6f));
+                return false;
+            }
+
+            CurrentHp -= dmg;
+            if (CurrentHp > 0)
+            {
+                CyberAudio.Play("hit", 0.9f);
+                CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 2.2f, new Color(1f, 0.2f, 0.7f), 8);
+                CyberVFX.TriggerHitStop(this, 0.035f, 0.1f);
+                return true;
+            }
+
+            IsDead = true;
+            CyberAudio.Play("explosion", kind == EnemyKind.CoreBoss ? 1.15f : 0.85f);
+            foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = false;
+            foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
+
+            Color fxCol = kind == EnemyKind.Drone
+                ? new Color(1.0f, 0.22f, 0.45f)
+                : (kind == EnemyKind.ShieldPylon ? new Color(0.15f, 0.95f, 1.0f) : new Color(1.0f, 0.18f, 0.72f));
+
+            CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 1.2f, fxCol, kind == EnemyKind.CoreBoss ? 28 : 14);
+            CyberVFX.TriggerHitStop(this, kind == EnemyKind.CoreBoss ? 0.08f : 0.045f, 0.06f);
+
+            if (attacker != null)
+            {
+                attacker.OnKillDashReset();
+            }
+
+            if (StageManager.Instance != null)
+            {
+                StageManager.Instance.RegisterKill(this);
+            }
+            return true;
+        }
+    }
+}
