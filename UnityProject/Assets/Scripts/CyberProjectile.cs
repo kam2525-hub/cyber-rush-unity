@@ -14,6 +14,7 @@ namespace CyberRush
         private int _arenaDamage = 18;
         private int _enemyUnitDamage = 1;
         private bool _isSwordWave;
+        private BeatGrade _beatGrade = BeatGrade.Good;
         private float _life = 4.5f;
         private readonly HashSet<int> _hitIds = new HashSet<int>();
         private bool _destroyed;
@@ -47,7 +48,8 @@ namespace CyberRush
             int arenaDamage,
             int enemyUnitDamage,
             bool isSwordWave = false,
-            float life = 3.2f)
+            float life = 3.2f,
+            BeatGrade beatGrade = BeatGrade.Good)
         {
             _dir = dir.normalized;
             _speed = speed;
@@ -57,6 +59,7 @@ namespace CyberRush
             _enemyUnitDamage = enemyUnitDamage;
             _isSwordWave = isSwordWave;
             _life = life;
+            _beatGrade = beatGrade;
         }
 
         public void Deflect(Vector3 aimDir, int deflectorActorId = 0, CyberParkourController deflector = null)
@@ -132,9 +135,9 @@ namespace CyberRush
                 if (!enemy.IsDead && fromPlayerOrDeflected && _hitIds.Add(enemy.gameObject.GetInstanceID()))
                 {
                     CyberParkourController credit = _ownerPlayer != null ? _ownerPlayer : FindFirstObjectByType<CyberParkourController>();
-                    if (enemy.TakeSliceDamage(credit, _enemyUnitDamage))
+                    if (enemy.TakeSliceDamage(credit, _enemyUnitDamage, _beatGrade))
                     {
-                        CyberHUD.TriggerHitmarker("HIT!", new Color(0.2f, 0.98f, 1f));
+                        CyberHUD.TriggerHitmarker(_beatGrade != BeatGrade.OffBeat ? "リズム命中！" : "HIT!", new Color(0.2f, 0.98f, 1f));
                     }
                     CyberVFX.SpawnShatterExplosion(enemy, hitPos, new Color(0.2f, 0.95f, 1f), 4);
                     CyberAudio.Play("hit", 0.72f);

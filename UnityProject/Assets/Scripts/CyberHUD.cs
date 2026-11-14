@@ -198,33 +198,40 @@ namespace CyberRush
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
             float panelW = 640f;
-            float panelH = _showControlsHelp ? 585f : 500f;
+            float panelH = _showControlsHelp ? 640f : 552f;
             Rect panelRect = new Rect(cx - panelW * 0.5f, cy - panelH * 0.5f, panelW, panelH);
 
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
             DrawOutlineBox(panelRect, new Color(0.16f, 0.92f, 1f, 0.85f), 2f);
 
-            float y = panelRect.y + 20f;
+            float y = panelRect.y + 18f;
             _headerStyle.normal.textColor = new Color(0.22f, 0.96f, 1f);
-            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 44), "CYBER RUSH // サイバー剣戟×銃撃", _headerStyle);
-            y += 42f;
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 44), "CYBER BEAT RUSH // リズム剣戟×銃撃", _headerStyle);
+            y += 40f;
 
-            _subHeaderStyle.normal.textColor = new Color(0.80f, 0.88f, 0.98f);
-            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "一人称パルクール ・ 撃破スローモーション連撃 ・ カタナ＆銃アクション", _subHeaderStyle);
-            y += 34f;
+            _subHeaderStyle.normal.textColor = new Color(0.84f, 0.92f, 1f);
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "128 BPM のビートに合わせて斬り・撃ち・スローモ連撃を繋げ！ (最大 x16 FEVER)", _subHeaderStyle);
+            y += 32f;
 
             float bw = 520f;
             float bx = cx - bw * 0.5f;
 
-            if (DrawAccentButton(new Rect(bx, y, bw, 46), "ステージ攻略スタート (STAGE 1 から通しプレイ)", new Color(0.16f, 0.95f, 1f)))
+            string survivalLabel = sm.BestSurvivalWave > 0
+                ? $"RHYTHM SURVIVAL // 無限ビート連撃サバイバル  (最高 WAVE {sm.BestSurvivalWave} / {sm.BestSurvivalScore:N0}pts)"
+                : "RHYTHM SURVIVAL // 無限ビート連撃サバイバル [新モード・コンボ爽快]";
+            if (DrawAccentButton(new Rect(bx, y, bw, 46), survivalLabel, new Color(1f, 0.82f, 0.22f)))
+                sm.StartRhythmSurvival();
+            y += 54f;
+
+            if (DrawAccentButton(new Rect(bx, y, bw, 42), "ステージ攻略スタート (STAGE 1 から通しプレイ)", new Color(0.16f, 0.95f, 1f)))
                 sm.StartParkour(1);
-            y += 56f;
+            y += 50f;
 
             // Direct Stage Select Card (Stages 1 - 5)
             Rect listBox = new Rect(bx, y, bw, 198f);
             GUI.Box(listBox, GUIContent.none, _cardStyle);
             DrawOutlineBox(listBox, new Color(0.32f, 0.55f, 0.88f, 0.65f), 1f);
-            GUI.Label(new Rect(bx + 14, y + 6, 300, 22), "ステージ選択 (クリックで直接プレイ)", _labelStyle);
+            GUI.Label(new Rect(bx + 14, y + 6, 360, 22), "ステージ選択 (クリックで直接プレイ・ビートスコア対応)", _labelStyle);
 
             float halfW = (bw - 36f) * 0.5f;
             if (DrawAccentButton(new Rect(bx + 12, y + 32, halfW, 38), "STAGE 1: スカイライン", new Color(0.18f, 0.92f, 1f)))
@@ -239,11 +246,11 @@ namespace CyberRush
 
             if (DrawAccentButton(new Rect(bx + 12, y + 124, bw - 24f, 44), "STAGE 5: スカイフォートレス決戦 [新・大量撃破＆ボス]", new Color(1f, 0.82f, 0.22f)))
                 sm.StartParkour(5);
-            y += 208f;
+            y += 206f;
 
-            if (DrawAccentButton(new Rect(bx, y, bw, 42), "BOSS RUSH // アルコンコア直接対決", new Color(1f, 0.24f, 0.68f)))
+            if (DrawAccentButton(new Rect(bx, y, bw, 40), "BOSS RUSH // アルコンコア直接対決", new Color(1f, 0.24f, 0.68f)))
                 sm.StartBossRush();
-            y += 52f;
+            y += 48f;
 
             // Bottom Footer Buttons
             bool muted = CyberAudio.Instance != null && CyberAudio.Instance.IsMuted;
@@ -254,16 +261,17 @@ namespace CyberRush
             string helpLabel = _showControlsHelp ? "操作ガイドを閉じる ▲" : "操作ガイドを見る ▼";
             if (DrawAccentButton(new Rect(bx + 12 + halfW, y, halfW, 36), helpLabel, new Color(0.75f, 0.85f, 1f)))
                 _showControlsHelp = !_showControlsHelp;
-            y += 46f;
+            y += 44f;
 
             if (_showControlsHelp)
             {
-                Rect helpRect = new Rect(bx, y, bw, 76);
+                Rect helpRect = new Rect(bx, y, bw, 80);
                 GUI.Box(helpRect, GUIContent.none, _cardStyle);
-                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 66),
-                    "【移動】WASD:移動 | Space:ジャンプ/壁走り | Shift/右クリ:ダッシュ/スローモ | E:ワイヤー\n" +
-                    "【武器】[1]カタナ [2]サイバー銃 (ホイール切替) | [G]クイック銃撃 | [C]スライディング/空中急降下斬\n" +
-                    "【技】左クリ:通常斬撃・弾き/射撃 | [Q]斬撃波/レールガン | [F]旋風斬/拡散ショット | [M]消音",
+                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 70),
+                    "【リズム】照準左右のビートバーが中央に重なる瞬間に攻撃/ダッシュで「PERFECT BEAT!!」\n" +
+                    "　　　　  コンボで倍率 x1→x2→x4→x8→x16 HYPER FEVER！ 範囲拡大＆威力2倍＆HP回復！\n" +
+                    "【操作】WASD:移動 | Space:ジャンプ | Shift/右クリ:ダッシュ/スローモ | E:ワイヤー | C:スライディング\n" +
+                    "【武器】[1]刀 [2]銃 (ホイール切替) | 左クリ:通常 | [Q]斬撃波/レールガン | [F]旋風斬/拡散銃 | [G]クイック撃",
                     _smallLabelStyle);
             }
         }
@@ -334,17 +342,49 @@ namespace CyberRush
 
             Rect tlRect = new Rect(14, 14, 290, 74);
             GUI.Box(tlRect, GUIContent.none, _panelStyle);
-            DrawOutlineBox(tlRect, new Color(0.18f, 0.92f, 1f, 0.7f), 1.5f);
+            Color tlBorder = sm.ActiveMode == GameMode.RhythmSurvival ? new Color(1f, 0.82f, 0.22f, 0.85f) : new Color(0.18f, 0.92f, 1f, 0.7f);
+            DrawOutlineBox(tlRect, tlBorder, 1.5f);
 
-            _titleStyle.normal.textColor = new Color(0.22f, 0.95f, 1f);
+            _titleStyle.normal.textColor = sm.ActiveMode == GameMode.RhythmSurvival ? new Color(1f, 0.85f, 0.25f) : new Color(0.22f, 0.95f, 1f);
             string titleText = sm.ActiveMode == GameMode.Parkour
                 ? $"ステージ {sm.CurrentStage} / {sm.stages.Count}"
-                : "ボスラッシュ // アルコンコア戦";
+                : (sm.ActiveMode == GameMode.RhythmSurvival ? $"ビートサバイバル // WAVE {sm.SurvivalWave}" : "ボスラッシュ // アルコンコア戦");
             GUI.Label(new Rect(24, 18, 272, 24), titleText, _titleStyle);
 
             _bigTimerStyle.normal.textColor = new Color(1f, 0.86f, 0.25f);
             GUI.Label(new Rect(24, 42, 130, 36), $"{sm.StageElapsed:00.00}秒", _bigTimerStyle);
             GUI.Label(new Rect(150, 50, 145, 24), $"撃破:{sm.StageKills}  [ESC]メニュー", _smallLabelStyle);
+
+            // Top-Right: Rhythm Score, Combo & Fever Multiplier Panel
+            var rhythm = CyberRhythm.Instance;
+            if (rhythm != null)
+            {
+                Rect trRect = new Rect(Screen.width - 278f, 14f, 264f, 84f);
+                GUI.Box(trRect, GUIContent.none, _panelStyle);
+                Color beatBorder = rhythm.IsFever
+                    ? Color.Lerp(new Color(1f, 0.22f, 0.75f), new Color(1f, 0.88f, 0.22f), rhythm.BeatPulse)
+                    : Color.Lerp(new Color(0.16f, 0.65f, 0.85f), new Color(0.22f, 0.98f, 1f), rhythm.BeatPulse);
+                DrawOutlineBox(trRect, beatBorder, rhythm.BeatPulse > 0.45f ? 2.5f : 1.5f);
+
+                _titleStyle.normal.textColor = rhythm.IsFever ? new Color(1f, 0.85f, 0.22f) : Color.white;
+                GUI.Label(new Rect(trRect.x + 12, trRect.y + 6, 175, 24), $"SCORE: {rhythm.Score:N0}", _titleStyle);
+
+                _titleStyle.normal.textColor = rhythm.Multiplier >= 8 ? new Color(1f, 0.28f, 0.75f) : new Color(0.22f, 0.98f, 1f);
+                _titleStyle.alignment = TextAnchor.UpperRight;
+                GUI.Label(new Rect(trRect.x + 180, trRect.y + 6, 72, 24), $"x{rhythm.Multiplier}", _titleStyle);
+                _titleStyle.alignment = TextAnchor.UpperLeft;
+
+                _labelStyle.normal.textColor = rhythm.Combo > 0 ? new Color(1f, 0.86f, 0.25f) : new Color(0.70f, 0.78f, 0.90f);
+                string comboStr = rhythm.Multiplier >= 16
+                    ? $"COMBO {rhythm.Combo} // HYPER FEVER!!"
+                    : (rhythm.IsFever ? $"COMBO {rhythm.Combo} // FEVER!!" : $"COMBO: {rhythm.Combo}");
+                GUI.Label(new Rect(trRect.x + 12, trRect.y + 33, 240, 22), comboStr, _labelStyle);
+                _labelStyle.normal.textColor = new Color(0.92f, 0.96f, 1f);
+
+                GUI.Label(new Rect(trRect.x + 12, trRect.y + 57, 240, 20),
+                    $"最大:{rhythm.MaxCombo}コンボ  |  128 BPM 精度:{rhythm.AccuracyPercent:0}%",
+                    _smallLabelStyle);
+            }
 
             // Top-Center Objectives
             if ((sm.ActiveMode == GameMode.Parkour && (sm.CurrentStage == 3 || sm.CurrentStage == 5)) || sm.ActiveMode == GameMode.BossRush)
@@ -359,6 +399,14 @@ namespace CyberRush
                     ? $"ボスのシールド装置（パイロン）を破壊せよ！ (残り {rem} 基)"
                     : "シールド解除！ ボス本体（アルコンコア）を撃破せよ！";
                 GUI.Label(new Rect(cx - 205f, 20, 410, 28), bossHint, _centerStyle);
+            }
+            else if (sm.ActiveMode == GameMode.RhythmSurvival)
+            {
+                Rect objRect = new Rect(cx - 200f, 14, 400, 40);
+                GUI.Box(objRect, GUIContent.none, _panelStyle);
+                DrawOutlineBox(objRect, new Color(1f, 0.82f, 0.22f), 1.5f);
+                _centerStyle.normal.textColor = new Color(1f, 0.88f, 0.30f);
+                GUI.Label(new Rect(cx - 195f, 20, 390, 28), $"128 BPM ビートに合わせて敵を殲滅せよ！ (WAVE {sm.SurvivalWave})", _centerStyle);
             }
             else if (sm.ActiveMode == GameMode.VsCpuArena && sm.Player1 != null)
             {
@@ -412,7 +460,7 @@ namespace CyberRush
                 GUI.color = Color.white;
             }
 
-            // Crosshair
+            // Crosshair + 128 BPM Converging Beat Sync Bars
             Color retCol = p.HasTargetInSlashRange
                 ? new Color(1f, 0.2f, 0.68f)
                 : (p.HoveredGrapple != null ? new Color(1f, 0.82f, 0.22f) : new Color(0.2f, 0.96f, 1f));
@@ -421,7 +469,34 @@ namespace CyberRush
             GUI.DrawTexture(new Rect(cx + 3, cy - 1, 6, 2), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(cx - 1, cy - 9, 2, 6), Texture2D.whiteTexture);
             GUI.DrawTexture(new Rect(cx - 1, cy + 3, 2, 6), Texture2D.whiteTexture);
+
+            if (p.playerId == 0 && CyberRhythm.Instance != null)
+            {
+                var r = CyberRhythm.Instance;
+                float pulse = r.BeatPulse;
+                // Center Beat Target Brackets (±14px around crosshair)
+                Color zoneCol = r.IsFever
+                    ? Color.Lerp(new Color(1f, 0.28f, 0.78f, 0.45f), new Color(1f, 0.90f, 0.25f, 1f), pulse)
+                    : Color.Lerp(new Color(0.20f, 0.92f, 1f, 0.35f), Color.white, pulse);
+                GUI.color = zoneCol;
+                float bh = 16f + pulse * 8f;
+                GUI.DrawTexture(new Rect(cx - 15f, cy - bh * 0.5f, 3f, bh), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(cx + 12f, cy - bh * 0.5f, 3f, bh), Texture2D.whiteTexture);
+
+                // Sliding Beat Note Bars converging smoothly inward to hit zone at BeatPhase == 0/1
+                float offset = 14f + (1f - r.BeatPhase) * 76f;
+                Color noteCol = r.IsFever ? new Color(1f, 0.85f, 0.22f, 0.92f) : new Color(0.18f, 0.98f, 1f, 0.92f);
+                GUI.color = noteCol;
+                GUI.DrawTexture(new Rect(cx - offset - 3f, cy - 9f, 4f, 18f), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(cx + offset - 1f, cy - 9f, 4f, 18f), Texture2D.whiteTexture);
+            }
             GUI.color = Color.white;
+
+            if (p.playerId == 0 && CyberRhythm.Instance != null && CyberRhythm.Instance.LastJudgeTimer > 0f)
+            {
+                _centerStyle.normal.textColor = CyberRhythm.Instance.LastJudgeColor;
+                GUI.Label(new Rect(cx - 120, cy + 24, 240, 24), CyberRhythm.Instance.LastJudgeLabel, _centerStyle);
+            }
 
             if (p.HoveredGrapple != null)
             {
@@ -543,7 +618,11 @@ namespace CyberRush
             _titleStyle.alignment = TextAnchor.UpperLeft;
 
             _centerStyle.normal.textColor = Color.white;
-            GUI.Label(new Rect(cx - 190, cy - 16, 380, 26), $"撃破数: {sm.StageKills} (合計 {sm.TotalKills})", _centerStyle);
+            var r = CyberRhythm.Instance;
+            string statsLine = r != null
+                ? $"スコア: {r.Score:N0}   |   最大コンボ: {r.MaxCombo}   |   撃破: {sm.StageKills} (精度 {r.AccuracyPercent:0}%)"
+                : $"撃破数: {sm.StageKills} (合計 {sm.TotalKills})";
+            GUI.Label(new Rect(cx - 235, cy - 16, 470, 26), statsLine, _centerStyle);
 
             string nextLabel = sm.ActiveMode == GameMode.Parkour && !sm.IsAllStagesCleared ? "次のステージへ [Space]" : "もう一度遊ぶ [Space]";
             if (DrawAccentButton(new Rect(cx - 220, cy + 44, 165, 44), nextLabel, new Color(0.16f, 0.95f, 1f)))

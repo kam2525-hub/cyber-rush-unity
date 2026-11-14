@@ -22,6 +22,10 @@ namespace CyberRush
     private readonly Dictionary<string, AudioClip> clips = new Dictionary<string, AudioClip>();
     private const int SampleRate = 44100;
 
+    public bool BgmIsPlaying => bgmSource != null && bgmSource.isPlaying && bgmSource.clip != null;
+    public float BgmSampleTimeSeconds => BgmIsPlaying ? (bgmSource.timeSamples / (float)SampleRate) : Time.unscaledTime;
+    public float BgmClipLengthSeconds => (bgmSource != null && bgmSource.clip != null) ? bgmSource.clip.length : 7.5f;
+
     public static CyberAudio EnsureInstance()
     {
         if (Instance != null) return Instance;
@@ -129,6 +133,10 @@ namespace CyberRush
         clips["explosion"] = MakeExplosionClip("SFX_Explosion", 0.48f, 140f, 32f, 0.85f);
         clips["kill_deluxe"] = MakeDeluxeKillClip("SFX_KillDeluxe", 0.62f, isBoss: false);
         clips["boss_kill"] = MakeDeluxeKillClip("SFX_BossKill", 1.15f, isBoss: true);
+        clips["beat_perfect"] = MakeBeatChimeClip("SFX_BeatPerfect", 0.18f, baseFreq: 1046.5f, gain: 0.42f);
+        clips["beat_good"] = MakeBeatChimeClip("SFX_BeatGood", 0.12f, baseFreq: 783.99f, gain: 0.28f);
+        clips["fever_up"] = MakeClearFanfareClip("SFX_FeverUp", 0.45f);
+        clips["wave_next"] = MakeSweepNoiseClip("SFX_WaveNext", 0.42f, 220f, 880f, 0.2f, 0.55f);
         clips["dash"] = MakeSweepNoiseClip("SFX_Dash", 0.18f, 2100f, 550f, 0.78f, 0.32f);
         clips["jumppad"] = MakeJumpPadClip("SFX_JumpPad", 0.32f);
         clips["damage"] = MakeSweepNoiseClip("SFX_Damage", 0.24f, 180f, 65f, 0.65f, 0.72f);
@@ -341,6 +349,22 @@ namespace CyberRush
         return CreateClip(name, d);
     }
 
+    private static AudioClip MakeBeatChimeClip(string name, float dur, float baseFreq, float gain)
+    {
+        int n = Mathf.RoundToInt(dur * SampleRate);
+        float[] d = new float[n];
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)n;
+            float sec = i / (float)SampleRate;
+            float env = Mathf.Min(1f, t * 65f) * Mathf.Exp(-t * 14f);
+            float s = Mathf.Sin(sec * 6.28318f * baseFreq) * 0.65f
+                    + Mathf.Sin(sec * 6.28318f * (baseFreq * 1.5f)) * 0.35f;
+            d[i] = Mathf.Clamp(s * env * gain, -1f, 1f);
+        }
+        return CreateClip(name, d);
+    }
+
     private static AudioClip MakeDeluxeKillClip(string name, float dur, bool isBoss)
     {
         int n = Mathf.RoundToInt(dur * SampleRate);
@@ -424,13 +448,22 @@ namespace CyberRush
             float arpTri = 1f - 4f * Mathf.Abs(pArp - 0.5f);
             float arpEnv = Mathf.Pow(1f - subFrac, 2.2f);
 
-            // 4-on-the-floor Kick
+            // 4-on-the-floor Kick (sharp transient click + sub punch so every beat is unmistakable)
             float kick = 0f;
             if (beatFrac < 0.28f)
             {
                 float kt = beatFrac / 0.28f;
-                float kf = Mathf.Lerp(135f, 44f, Mathf.Pow(kt, 0.35f));
-                kick = Mathf.Sin(kt * 0.28f * 6.28318f * kf) * Mathf.Pow(1f - kt, 2.4f);
+                float kf = Mathf.Lerp(155f, 44f, Mathf.Pow(kt, 0.32f));
+                float transient = Mathf.Exp(-beatFrac * 180f) * 0.35f;
+                kick = Mathf.Sin(kt * 0.28f * 6.28318f * kf) * Mathf.Pow(1f - kt, 2.2f) + transient;
+            }
+
+            // Crisp Off-Beat Hi-Hat (0.5 beat syncopation for instant groove!)
+            float hat = 0f;
+            if (beatFrac >= 0.48f && beatFrac < 0.62f)
+            {
+                float ht = (beatFrac - 0.48f) / 0.14f;
+                hat = (HashNoise(i * 7 + 3) - HashNoise((i - 1) * 7 + 3)) * Mathf.Exp(-ht * 16f) * 0.20f;
             }
 
             // Crisp Cyber Snare on beats 2 & 4
@@ -439,10 +472,10 @@ namespace CyberRush
             if ((beatInBar == 1 || beatInBar == 3) && beatFrac < 0.22f)
             {
                 float st = beatFrac / 0.22f;
-                snare = HashNoise(i * 3) * Mathf.Pow(1f - st, 3.0f) * 0.42f;
+                snare = HashNoise(i * 3) * Mathf.Pow(1f - st, 3.0f) * 0.48f;
             }
 
-            float sample = lpBass * bassEnv * 0.42f + arpTri * arpEnv * 0.18f + kick * 0.52f + snare;
+            float sample = lpBass * bassEnv * 0.40f + arpTri * arpEnv * 0.19f + kick * 0.56f + snare + hat;
             d[i] = Mathf.Clamp((float)Math.Tanh(sample * 1.15f) * 0.85f, -1f, 1f);
         }
         return CreateClip(name, d);

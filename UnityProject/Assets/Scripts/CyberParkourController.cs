@@ -267,6 +267,12 @@ namespace CyberRush
             _slowMoEnergy = Mathf.Min(1f, _slowMoEnergy + 0.45f);
         }
 
+        public void HealArenaHp(int amount)
+        {
+            if (!isArenaFighter || IsArenaDead) return;
+            ArenaHp = Mathf.Min(arenaMaxHp, ArenaHp + amount);
+        }
+
         public void OnArenaKillScored()
         {
             ArenaKills++;
@@ -308,6 +314,11 @@ namespace CyberRush
                     attacker.OnKillDashReset();
                 }
                 CyberAudio.Play("explosion", 0.9f);
+                if (playerId == 0 && StageManager.Instance != null && StageManager.Instance.ActiveMode == GameMode.RhythmSurvival)
+                {
+                    StageManager.Instance.OnSurvivalGameOver();
+                    return true;
+                }
                 CyberHUD.ShowCallout($"PLAYER {playerId + 1} 撃破！", new Color(1f, 0.25f, 0.35f));
                 StartCoroutine(ArenaRespawnRoutine());
                 return true;
@@ -635,11 +646,17 @@ namespace CyberRush
         {
             if (_dashCharges <= 0 || _isDashing) return;
             _dashCharges--;
-            if (_dashCharges == MaxDashCharges - 1) _dashRechargeTimer = 1.45f;
-            StartCoroutine(DashRoutine(dir.normalized));
+            BeatGrade grade = (playerId == 0 && CyberRhythm.Instance != null)
+                ? CyberRhythm.Instance.JudgeBeatAction(allowComboPenalty: false)
+                : BeatGrade.OffBeat;
+            if (_dashCharges == MaxDashCharges - 1)
+                _dashRechargeTimer = grade != BeatGrade.OffBeat ? 0.85f : 1.45f;
+            else if (grade != BeatGrade.OffBeat)
+                _dashRechargeTimer = Mathf.Max(0.1f, _dashRechargeTimer - 0.55f);
+            StartCoroutine(DashRoutine(dir.normalized, grade));
         }
 
-        private IEnumerator DashRoutine(Vector3 dir)
+        private IEnumerator DashRoutine(Vector3 dir, BeatGrade grade)
         {
             _isDashing = true;
             _isWallRunning = false;
@@ -651,9 +668,11 @@ namespace CyberRush
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(8);
 
             Quaternion lookRot = Quaternion.LookRotation(dir);
-            Color dashCol = playerId == 0 ? new Color(0.15f, 0.95f, 1.0f) : new Color(1f, 0.22f, 0.72f);
+            Color dashCol = grade == BeatGrade.Perfect
+                ? new Color(1f, 0.85f, 0.22f)
+                : (playerId == 0 ? new Color(0.15f, 0.95f, 1.0f) : new Color(1f, 0.22f, 0.72f));
             CyberVFX.SpawnDashStreaks(this, transform.position + Vector3.up * 1.1f, lookRot, dashCol);
-            CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 0.9f, dashCol, 2.4f, 0.18f);
+            CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 0.9f, dashCol, grade == BeatGrade.Perfect ? 3.4f : 2.4f, 0.18f);
 
             float t = 0f;
             while (t < dashDuration)
@@ -860,11 +879,20 @@ namespace CyberRush
 
         private void PerformKatanaSlash()
         {
-            _slashCooldown = 0.24f;
+            _slashCooldown = 0.22f;
             _slashCombo = (_slashCombo % 3) + 1;
             _slashAnimTimer = 0.20f;
-            CyberAudio.Play("slash", 0.85f);
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
+            bool isFever = CyberRhythm.Instance != null && CyberRhythm.Instance.IsFever;
+            CyberAudio.Play("slash", onBeat ? 0.95f : 0.72f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(1);
+
+            if (onBeat)
+            {
+                _skillQCooldown = Mathf.Max(0f, _skillQCooldown - 0.55f);
+                _skillFCooldown = Mathf.Max(0f, _skillFCooldown - 0.55f);
+            }
 
             if (_katanaTrail != null)
             {
@@ -876,29 +904,35 @@ namespace CyberRush
             {
                 Vector3 arcPos = playerCamera.transform.position + playerCamera.transform.forward * 1.35f - playerCamera.transform.up * 0.12f;
                 float roll = _slashCombo == 1 ? -18f : (_slashCombo == 2 ? 28f : 78f);
-                Color outer = _slashCombo == 3 ? new Color(1.0f, 0.18f, 0.72f) : new Color(0.12f, 0.95f, 1.0f);
+                Color outer = isFever
+                    ? new Color(1.0f, 0.85f, 0.20f)
+                    : (onBeat ? new Color(0.12f, 0.95f, 1.0f) : new Color(0.65f, 0.72f, 0.85f));
+                if (_slashCombo == 3 && !isFever) outer = new Color(1.0f, 0.18f, 0.72f);
                 CyberVFX.SpawnCrescentSlash(
                     this, arcPos, playerCamera.transform.rotation,
-                    rollDeg: roll, pitchDeg: 0f, sweepDeg: 145f,
-                    outerRadius: 2.15f, innerRadius: 1.15f,
+                    rollDeg: roll, pitchDeg: 0f, sweepDeg: onBeat ? 165f : 135f,
+                    outerRadius: isFever ? 2.85f : (onBeat ? 2.45f : 2.0f), innerRadius: 1.15f,
                     coreColor: Color.white, outerColor: outer,
-                    duration: 0.16f, reverseSweep: _slashCombo == 2
+                    duration: 0.17f, reverseSweep: _slashCombo == 2
                 );
             }
 
             Vector3 camOrigin = playerCamera != null ? playerCamera.transform.position : transform.position + Vector3.up * 1.4f;
             Vector3 camFwd = playerCamera != null ? playerCamera.transform.forward : transform.forward;
-            Vector3 hitCenter = camOrigin + camFwd * 2.0f;
+            Vector3 hitCenter = camOrigin + camFwd * 2.15f;
+            float hitRadius = isFever ? 3.3f : (onBeat ? 2.95f : 2.35f);
 
-            bool anyHit = ApplyAreaAttack(hitCenter, 2.5f, camFwd, arenaDmg: _slashCombo == 3 ? 34 : 26, enemyUnitDmg: 2, allowDeflect: true, out bool deflected);
+            bool anyHit = ApplyAreaAttack(hitCenter, hitRadius, camFwd, arenaDmg: _slashCombo == 3 ? 36 : 28, enemyUnitDmg: onBeat ? 2 : 1, allowDeflect: true, out bool deflected, grade);
             if (deflected) CyberAudio.Play("deflect", 0.9f);
             if (anyHit && !_cc.isGrounded)
-                _velocity.y = Mathf.Max(_velocity.y, 4.5f);
+                _velocity.y = Mathf.Max(_velocity.y, 4.8f);
         }
 
         private void PerformSwordWave()
         {
             _slashAnimTimer = 0.22f;
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
             CyberAudio.Play("wave", 0.92f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(2);
 
@@ -909,7 +943,7 @@ namespace CyberRush
             wave.name = "SwordWaveProjectile";
             wave.transform.position = spawnPos;
             wave.transform.rotation = aim.rotation;
-            wave.transform.localScale = new Vector3(2.8f, 0.20f, 0.95f);
+            wave.transform.localScale = new Vector3(onBeat ? 3.5f : 2.6f, 0.22f, 0.95f);
 
             var bc = wave.GetComponent<BoxCollider>();
             bc.isTrigger = true;
@@ -917,7 +951,7 @@ namespace CyberRush
 
             var mr = wave.GetComponent<MeshRenderer>();
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            Color waveCol = playerId == 0 ? new Color(0.14f, 0.95f, 1.0f) : new Color(1.0f, 0.22f, 0.74f);
+            Color waveCol = onBeat ? new Color(0.14f, 0.95f, 1.0f) : new Color(0.65f, 0.72f, 0.90f);
             Material m = new Material(Shader.Find("Custom/CyberHardSurface") ?? Shader.Find("Sprites/Default"));
             m.SetColor("_Color", waveCol);
             if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", waveCol * 5.0f);
@@ -926,52 +960,62 @@ namespace CyberRush
             CyberVFX.SpawnCrescentSlash(
                 this, spawnPos, aim.rotation,
                 rollDeg: 0f, pitchDeg: 0f, sweepDeg: 165f,
-                outerRadius: 2.3f, innerRadius: 1.25f,
+                outerRadius: onBeat ? 2.7f : 2.2f, innerRadius: 1.25f,
                 coreColor: Color.white, outerColor: waveCol, duration: 0.20f
             );
 
             var proj = wave.AddComponent<CyberProjectile>();
-            proj.InitCombat(aim.forward, 34f, playerId, this, arenaDamage: 36, enemyUnitDamage: 2, isSwordWave: true, life: 2.2f);
-            CyberHUD.ShowCallout("斬撃波！", waveCol);
+            proj.InitCombat(aim.forward, onBeat ? 38f : 32f, playerId, this, arenaDamage: 36, enemyUnitDamage: onBeat ? 3 : 2, isSwordWave: true, life: 2.2f, beatGrade: grade);
+            CyberHUD.ShowCallout(onBeat ? "ビート斬撃波！" : "斬撃波！", waveCol);
         }
 
         private void PerformCycloneSlash()
         {
             _slashAnimTimer = 0.28f;
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
             CyberAudio.Play("cyclone", 0.95f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(2);
 
             Vector3 center = transform.position + Vector3.up * 1.15f;
-            Color cycCol = new Color(1.0f, 0.22f, 0.78f);
+            Color cycCol = onBeat ? new Color(1.0f, 0.22f, 0.78f) : new Color(0.6f, 0.7f, 0.85f);
 
-            CyberVFX.SpawnCrescentSlash(this, center, transform.rotation, 6f, 0f, 355f, 3.6f, 1.7f, Color.white, new Color(0.15f, 0.95f, 1f), 0.26f);
-            CyberVFX.SpawnCrescentSlash(this, center + Vector3.up * 0.25f, transform.rotation, -12f, 0f, 355f, 3.8f, 1.9f, Color.white, cycCol, 0.28f, true);
-            CyberVFX.SpawnRingPulse(this, center, cycCol, 4.2f, 0.25f);
+            CyberVFX.SpawnCrescentSlash(this, center, transform.rotation, 6f, 0f, 355f, onBeat ? 4.3f : 3.5f, 1.7f, Color.white, new Color(0.15f, 0.95f, 1f), 0.26f);
+            CyberVFX.SpawnCrescentSlash(this, center + Vector3.up * 0.25f, transform.rotation, -12f, 0f, 355f, onBeat ? 4.6f : 3.7f, 1.9f, Color.white, cycCol, 0.28f, true);
+            CyberVFX.SpawnRingPulse(this, center, cycCol, onBeat ? 5.2f : 4.0f, 0.25f);
 
             Vector3 fwd = playerCamera != null ? playerCamera.transform.forward : transform.forward;
-            ApplyAreaAttack(center, 4.1f, fwd, arenaDmg: 34, enemyUnitDmg: 2, allowDeflect: true, out bool deflected);
+            ApplyAreaAttack(center, onBeat ? 4.8f : 3.9f, fwd, arenaDmg: 34, enemyUnitDmg: onBeat ? 3 : 2, allowDeflect: true, out bool deflected, grade);
             if (deflected) CyberAudio.Play("deflect", 0.95f);
 
             if (!_cc.isGrounded)
                 _velocity.y = Mathf.Max(_velocity.y, 7.2f);
-            CyberHUD.ShowCallout("旋風斬！", cycCol);
+            CyberHUD.ShowCallout(onBeat ? "ビート旋風斬！" : "旋風斬！", cycCol);
         }
 
         private void TriggerDiveSlamImpact()
         {
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(false) : BeatGrade.Good;
             Vector3 center = transform.position + Vector3.up * 0.45f;
             Color slamCol = new Color(1f, 0.24f, 0.72f);
             CyberAudio.Play("slam", 0.95f);
-            CyberVFX.SpawnRingPulse(this, center, slamCol, 6.2f, 0.34f);
+            CyberVFX.SpawnRingPulse(this, center, slamCol, 6.5f, 0.34f);
             CyberVFX.SpawnShatterExplosion(this, center, slamCol, 14);
-            ApplyAreaAttack(center, 5.4f, transform.forward, arenaDmg: 42, enemyUnitDmg: 2, allowDeflect: true, out _);
+            ApplyAreaAttack(center, 5.8f, transform.forward, arenaDmg: 42, enemyUnitDmg: 2, allowDeflect: true, out _, grade);
         }
 
-        private void FireBlasterBolt(float spreadDeg, int arenaDmg, int enemyUnitDmg)
+        private void FireBlasterBolt(float spreadDeg, int arenaDmg, int enemyUnitDmg, bool judgeBeat = true)
         {
             _blasterCooldown = 0.145f;
             _blasterRecoil = 1.0f;
-            CyberAudio.Play("blaster", 0.72f);
+            BeatGrade grade = judgeBeat && CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
+            if (judgeBeat && onBeat)
+            {
+                _skillQCooldown = Mathf.Max(0f, _skillQCooldown - 0.35f);
+                _skillFCooldown = Mathf.Max(0f, _skillFCooldown - 0.35f);
+            }
+            CyberAudio.Play("blaster", onBeat ? 0.78f : 0.62f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(4);
 
             Transform aim = playerCamera != null ? playerCamera.transform : transform;
@@ -992,7 +1036,7 @@ namespace CyberRush
             GameObject bolt = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             bolt.name = "PlayerPlasmaBolt";
             bolt.transform.position = muzzle;
-            bolt.transform.localScale = new Vector3(0.26f, 0.26f, 0.95f);
+            bolt.transform.localScale = onBeat ? new Vector3(0.30f, 0.30f, 1.15f) : new Vector3(0.24f, 0.24f, 0.90f);
             bolt.transform.rotation = Quaternion.LookRotation(dir);
 
             var sc = bolt.GetComponent<SphereCollider>();
@@ -1001,19 +1045,24 @@ namespace CyberRush
 
             var mr = bolt.GetComponent<MeshRenderer>();
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            Color c = playerId == 0 ? new Color(0.15f, 0.98f, 1f) : new Color(1f, 0.25f, 0.72f);
+            Color c = (CyberRhythm.Instance != null && CyberRhythm.Instance.IsFever)
+                ? new Color(1f, 0.85f, 0.22f)
+                : (playerId == 0 ? new Color(0.15f, 0.98f, 1f) : new Color(1f, 0.25f, 0.72f));
             Material m = new Material(Shader.Find("Custom/CyberHardSurface") ?? Shader.Find("Sprites/Default"));
             m.SetColor("_Color", c);
             if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", c * 5.2f);
             mr.sharedMaterial = m;
 
+            int finalUnitDmg = onBeat ? enemyUnitDmg * 2 : enemyUnitDmg;
             var proj = bolt.AddComponent<CyberProjectile>();
-            proj.InitCombat(dir, 62f, playerId, this, arenaDamage: arenaDmg, enemyUnitDamage: enemyUnitDmg, isSwordWave: false, life: 2.2f);
+            proj.InitCombat(dir, 66f, playerId, this, arenaDamage: arenaDmg, enemyUnitDamage: finalUnitDmg, isSwordWave: false, life: 2.2f, beatGrade: grade);
         }
 
         private void FireRailgunBeam()
         {
             _blasterRecoil = 1.8f;
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
             CyberAudio.Play("railgun", 0.95f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(4);
 
@@ -1021,7 +1070,7 @@ namespace CyberRush
             Vector3 start = aim.position + aim.forward * 1.1f + aim.right * 0.25f - aim.up * 0.14f;
             Vector3 end = aim.position + aim.forward * 85f;
 
-            var hits = Physics.SphereCastAll(aim.position + aim.forward * 0.6f, 0.30f, aim.forward, 85f, ~0, QueryTriggerInteraction.Collide);
+            var hits = Physics.SphereCastAll(aim.position + aim.forward * 0.6f, onBeat ? 0.45f : 0.30f, aim.forward, 85f, ~0, QueryTriggerInteraction.Collide);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             var railHits = new System.Collections.Generic.HashSet<int>();
             foreach (var h in hits)
@@ -1032,7 +1081,7 @@ namespace CyberRush
 
                 if (h.collider.GetComponentInParent<CyberEnemy>() is CyberEnemy en && !en.IsDead && railHits.Add(en.gameObject.GetInstanceID()))
                 {
-                    en.TakeSliceDamage(this, 3);
+                    en.TakeSliceDamage(this, onBeat ? 5 : 3, grade);
                     CyberHUD.TriggerHitmarker("レールガン命中！", new Color(1f, 0.85f, 0.25f));
                 }
                 else if (h.collider.GetComponentInParent<CyberBotAI>() is CyberBotAI bot && !bot.IsDead && railHits.Add(bot.gameObject.GetInstanceID()))
@@ -1058,7 +1107,7 @@ namespace CyberRush
             }
 
             StartCoroutine(ShowRailgunBeamRoutine(start, end));
-            CyberHUD.ShowCallout("レールガン発射！", new Color(1f, 0.85f, 0.25f));
+            CyberHUD.ShowCallout(onBeat ? "ビート・レールガン！！" : "レールガン発射！", new Color(1f, 0.85f, 0.25f));
         }
 
         private IEnumerator ShowRailgunBeamRoutine(Vector3 start, Vector3 end)
@@ -1088,15 +1137,17 @@ namespace CyberRush
 
         private void FireScatterBurst()
         {
+            BeatGrade grade = CyberRhythm.Instance != null ? CyberRhythm.Instance.JudgeBeatAction(true) : BeatGrade.Good;
+            bool onBeat = grade != BeatGrade.OffBeat;
             CyberAudio.Play("scatter", 0.9f);
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(4);
             for (int i = 0; i < 5; i++)
-                FireBlasterBolt(4.2f, arenaDmg: 14, enemyUnitDmg: 1);
+                FireBlasterBolt(4.2f, arenaDmg: 14, enemyUnitDmg: onBeat ? 2 : 1, judgeBeat: false);
             _blasterCooldown = 0.35f;
-            CyberHUD.ShowCallout("スキャッターショット！", new Color(0.18f, 0.95f, 1f));
+            CyberHUD.ShowCallout(onBeat ? "ビート拡散ショット！" : "スキャッターショット！", new Color(0.18f, 0.95f, 1f));
         }
 
-        private bool ApplyAreaAttack(Vector3 center, float radius, Vector3 aimFwd, int arenaDmg, int enemyUnitDmg, bool allowDeflect, out bool anyDeflect)
+        private bool ApplyAreaAttack(Vector3 center, float radius, Vector3 aimFwd, int arenaDmg, int enemyUnitDmg, bool allowDeflect, out bool anyDeflect, BeatGrade beatGrade = BeatGrade.Good)
         {
             anyDeflect = false;
             bool anyHit = false;
@@ -1122,9 +1173,9 @@ namespace CyberRush
                 var enemy = col.GetComponentInParent<CyberEnemy>();
                 if (enemy != null && !enemy.IsDead && hitObjects.Add(enemy.gameObject.GetInstanceID()))
                 {
-                    if (enemy.TakeSliceDamage(this, enemyUnitDmg))
+                    if (enemy.TakeSliceDamage(this, enemyUnitDmg, beatGrade))
                     {
-                        CyberHUD.TriggerHitmarker("斬撃命中！", new Color(1f, 0.25f, 0.72f));
+                        CyberHUD.TriggerHitmarker(beatGrade != BeatGrade.OffBeat ? "リズム斬撃！！" : "斬撃命中！", new Color(1f, 0.25f, 0.72f));
                         anyHit = true;
                     }
                 }

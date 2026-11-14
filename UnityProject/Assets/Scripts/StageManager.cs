@@ -8,6 +8,7 @@ namespace CyberRush
         MainMenu,
         Parkour,
         BossRush,
+        RhythmSurvival,
         VsCpuArena,
         LocalPvp,
         LanPvp
@@ -28,6 +29,11 @@ namespace CyberRush
 
         public List<StageConfig> stages = new List<StageConfig>();
 
+        [Header("Survival Enemy Templates")]
+        public GameObject survivalDroneTemplate;
+        public GameObject survivalTrooperTemplate;
+        public GameObject survivalBossTemplate;
+
         public GameMode ActiveMode { get; private set; } = GameMode.MainMenu;
         public bool IsMenuOpen => ActiveMode == GameMode.MainMenu;
 
@@ -35,6 +41,9 @@ namespace CyberRush
         public float StageElapsed { get; private set; }
         public int StageKills { get; private set; }
         public int TotalKills { get; private set; }
+        public int SurvivalWave { get; private set; } = 1;
+        public int BestSurvivalScore { get; private set; }
+        public int BestSurvivalWave { get; private set; }
         public bool IsOverlayOpen { get; private set; }
         public bool IsAllStagesCleared { get; private set; }
         public string LastRank { get; private set; } = "S";
@@ -45,8 +54,10 @@ namespace CyberRush
         public CyberParkourController Player2 { get; private set; }
 
         private readonly Dictionary<int, float> _bestTimes = new Dictionary<int, float>();
+        private readonly Dictionary<int, int> _bestScores = new Dictionary<int, int>();
         private CyberBotAI[] _bots;
         private int _arenaBotsKilledCount;
+        private float _nextWaveTimer;
 
         private void Awake()
         {
@@ -56,6 +67,7 @@ namespace CyberRush
         private void Start()
         {
             CyberAudio.EnsureInstance();
+            CyberRhythm.EnsureInstance();
             LanPvpManager.EnsureInstance();
 
             foreach (var p in FindObjectsByType<CyberParkourController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
@@ -86,6 +98,26 @@ namespace CyberRush
             if (!IsMenuOpen && !IsOverlayOpen)
             {
                 StageElapsed += Time.unscaledDeltaTime;
+
+                if (ActiveMode == GameMode.RhythmSurvival)
+                {
+                    if (_nextWaveTimer > 0f)
+                    {
+                        _nextWaveTimer -= Time.unscaledDeltaTime;
+                        if (_nextWaveTimer <= 0f)
+                        {
+                            SurvivalWave++;
+                            CyberAudio.Play("wave_next", 0.9f);
+                            if (Player1 != null) Player1.HealArenaHp(20);
+                            SpawnSurvivalWave(SurvivalWave);
+                            CyberHUD.ShowCallout($"WAVE {SurvivalWave} 突入!! // 連撃を途切れさせるな！", new Color(0.22f, 0.98f, 1f));
+                        }
+                    }
+                    else if (CountAliveSurvivalEnemies() == 0)
+                    {
+                        _nextWaveTimer = 1.0f;
+                    }
+                }
             }
         }
 
@@ -96,9 +128,33 @@ namespace CyberRush
         }
 
         public float GetBestTime(int stage) => _bestTimes.TryGetValue(stage, out float t) ? t : 0f;
+        public int GetBestScore(int stage) => _bestScores.TryGetValue(stage, out int s) ? s : 0;
+
+        private void ClearDynamicSurvivalEnemies()
+        {
+            foreach (var e in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
+            {
+                if (!e.isDynamicSurvivalEnemy) continue;
+                GameObject go = e.gameObject;
+                if (go == survivalDroneTemplate || go == survivalTrooperTemplate || go == survivalBossTemplate) continue;
+                Destroy(go);
+            }
+        }
+
+        private int CountAliveSurvivalEnemies()
+        {
+            int c = 0;
+            foreach (var e in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
+            {
+                if (e.isDynamicSurvivalEnemy && !e.IsDead) c++;
+            }
+            return c;
+        }
 
         private void CleanupProjectilesAndToggleArenaActors(bool enableBots, bool enableP2, bool enableRemote)
         {
+            ClearDynamicSurvivalEnemies();
+
             foreach (var p in FindObjectsByType<CyberProjectile>(FindObjectsSortMode.None))
                 Destroy(p.gameObject);
 
@@ -153,6 +209,8 @@ namespace CyberRush
             StageKills = 0;
             IsOverlayOpen = false;
             IsAllStagesCleared = false;
+            CyberVFX.ResetTimeScale();
+            CyberRhythm.EnsureInstance()?.ResetSession();
             CleanupProjectilesAndToggleArenaActors(enableBots: false, enableP2: false, enableRemote: false);
 
             foreach (var e in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
@@ -166,7 +224,110 @@ namespace CyberRush
                 Player1.RespawnAt(bossApproach, Quaternion.identity);
                 Player1.SetCursorLocked(true);
             }
-            CyberHUD.ShowCallout("BOSS RUSH // アルコンコア戦！", new Color(1f, 0.22f, 0.72f));
+            CyberHUD.ShowCallout("BOSS RUSH // 128 BPM アルコンコア戦！", new Color(1f, 0.22f, 0.72f));
+        }
+
+        public void StartRhythmSurvival()
+        {
+            ActiveMode = GameMode.RhythmSurvival;
+            CurrentStage = 4;
+            StageElapsed = 0f;
+            StageKills = 0;
+            SurvivalWave = 1;
+            _nextWaveTimer = 0f;
+            ArenaWinnerText = "";
+            IsOverlayOpen = false;
+            IsAllStagesCleared = false;
+            CyberVFX.ResetTimeScale();
+            CyberRhythm.EnsureInstance()?.ResetSession();
+            CleanupProjectilesAndToggleArenaActors(enableBots: false, enableP2: false, enableRemote: false);
+
+            if (Player1 != null)
+            {
+                Vector3 arenaP1 = new Vector3(360f, 2.2f, -18f);
+                Player1.ConfigureArenaFighter(true, arenaP1, Quaternion.identity);
+                Player1.RespawnAt(arenaP1, Quaternion.identity);
+                Player1.SetCursorLocked(true);
+            }
+
+            SpawnSurvivalWave(1);
+            CyberHUD.ShowCallout("BEAT SURVIVAL WAVE 1 // 128 BPM リズム連撃！", new Color(0.18f, 0.98f, 1f));
+        }
+
+        private void SpawnSurvivalWave(int wave)
+        {
+            int drones = Mathf.Min(4 + wave, 11);
+            int troopers = Mathf.Min(1 + wave / 2, 5);
+            bool spawnBoss = (wave % 3 == 0);
+
+            Vector3 pPos = Player1 != null ? Player1.transform.position : new Vector3(360f, 2.2f, -18f);
+            float scaledFire = Mathf.Max(1.05f, 2.5f - wave * 0.1f);
+
+            for (int i = 0; i < drones; i++)
+                SpawnSurvivalUnit(survivalDroneTemplate, true, pPos, scaledFire, wave);
+
+            for (int i = 0; i < troopers; i++)
+                SpawnSurvivalUnit(survivalTrooperTemplate, false, pPos, scaledFire * 0.92f, wave);
+
+            if (spawnBoss && survivalBossTemplate != null)
+            {
+                Vector3 bossPos = new Vector3(360f, 3.0f, 0f);
+                if (Vector3.Distance(bossPos, pPos) < 10f) bossPos = new Vector3(360f, 3.0f, 16f);
+                var bossGo = Instantiate(survivalBossTemplate, bossPos, Quaternion.LookRotation((pPos - bossPos).normalized));
+                var bossAi = bossGo.GetComponent<CyberEnemy>();
+                if (bossAi != null)
+                {
+                    bossAi.isDynamicSurvivalEnemy = true;
+                    bossAi.detectRange = 65f;
+                    bossAi.fireInterval = Mathf.Max(1.1f, scaledFire);
+                    bossAi.maxHp = 2 + wave / 3;
+                }
+                bossGo.SetActive(true);
+            }
+        }
+
+        private void SpawnSurvivalUnit(GameObject template, bool aerial, Vector3 playerPos, float fireInterval, int wave)
+        {
+            if (template == null) return;
+            Vector3 spawnPos = new Vector3(360f, aerial ? 4.2f : 1.1f, 8f);
+            for (int tries = 0; tries < 8; tries++)
+            {
+                float x = 360f + Random.Range(-21f, 21f);
+                float z = Random.Range(-21f, 21f);
+                float y = aerial ? Random.Range(3.2f, 6.2f) : (Mathf.Abs(x - 360f) < 6f && Mathf.Abs(z) < 6f ? 2.8f : 1.05f);
+                spawnPos = new Vector3(x, y, z);
+                if (Vector3.Distance(spawnPos, playerPos) > 9f) break;
+            }
+
+            Vector3 look = (playerPos - spawnPos);
+            look.y = 0f;
+            Quaternion rot = look.sqrMagnitude > 0.01f ? Quaternion.LookRotation(look.normalized) : Quaternion.identity;
+
+            var go = Instantiate(template, spawnPos, rot);
+            var ai = go.GetComponent<CyberEnemy>();
+            if (ai != null)
+            {
+                ai.isDynamicSurvivalEnemy = true;
+                ai.detectRange = 65f;
+                ai.fireInterval = fireInterval;
+                ai.maxHp = (!aerial && wave >= 5) ? 2 : 1;
+            }
+            go.SetActive(true);
+        }
+
+        public void OnSurvivalGameOver()
+        {
+            if (IsOverlayOpen || ActiveMode != GameMode.RhythmSurvival) return;
+            int sc = CyberRhythm.Instance != null ? CyberRhythm.Instance.Score : 0;
+            if (sc > BestSurvivalScore) BestSurvivalScore = sc;
+            if (SurvivalWave > BestSurvivalWave) BestSurvivalWave = SurvivalWave;
+
+            LastRank = sc >= 30000 ? "SSS" : (sc >= 16000 ? "SS" : (sc >= 8000 ? "S" : (sc >= 3500 ? "A" : "B")));
+            ArenaWinnerText = $"RHYTHM SURVIVAL // WAVE {SurvivalWave} 記録！";
+            IsOverlayOpen = true;
+            CyberVFX.ResetTimeScale();
+            CyberAudio.Play("clear", 0.9f);
+            if (Player1 != null) Player1.SetCursorLocked(false);
         }
 
         public void StartVsCpuArena()
@@ -256,6 +417,7 @@ namespace CyberRush
             IsOverlayOpen = false;
             IsAllStagesCleared = false;
             CyberVFX.ResetTimeScale();
+            CyberRhythm.EnsureInstance()?.ResetSession();
 
             foreach (var p in FindObjectsByType<CyberProjectile>(FindObjectsSortMode.None))
                 Destroy(p.gameObject);
@@ -273,6 +435,7 @@ namespace CyberRush
         public void RestartCurrentStage()
         {
             if (ActiveMode == GameMode.BossRush) StartBossRush();
+            else if (ActiveMode == GameMode.RhythmSurvival) StartRhythmSurvival();
             else if (ActiveMode == GameMode.VsCpuArena) StartVsCpuArena();
             else if (ActiveMode == GameMode.LocalPvp) StartLocalPvp();
             else StartParkour(CurrentStage);
@@ -311,7 +474,10 @@ namespace CyberRush
             }
             else if (enemy.kind == EnemyKind.CoreBoss)
             {
-                OnStageReachedGoal(CurrentStage);
+                if (ActiveMode == GameMode.RhythmSurvival)
+                    CyberHUD.ShowCallout("WAVE BOSS 撃破!! // ボーナス +HP", new Color(1f, 0.85f, 0.22f));
+                else
+                    OnStageReachedGoal(CurrentStage);
             }
         }
 
@@ -354,7 +520,13 @@ namespace CyberRush
             if (ActiveMode == GameMode.Parkour && (!_bestTimes.TryGetValue(CurrentStage, out float best) || StageElapsed < best))
                 _bestTimes[CurrentStage] = StageElapsed;
 
-            LastRank = StageElapsed <= cfg.sRankTime ? "S" : (StageElapsed <= cfg.aRankTime ? "A" : "B");
+            int sc = CyberRhythm.Instance != null ? CyberRhythm.Instance.Score : 0;
+            if (ActiveMode == GameMode.Parkour && (!_bestScores.TryGetValue(CurrentStage, out int bestSc) || sc > bestSc))
+                _bestScores[CurrentStage] = sc;
+
+            LastRank = CyberRhythm.Instance != null
+                ? CyberRhythm.Instance.ComputeScoreRank(StageElapsed, cfg.sRankTime)
+                : (StageElapsed <= cfg.sRankTime ? "S" : (StageElapsed <= cfg.aRankTime ? "A" : "B"));
             ArenaWinnerText = ActiveMode == GameMode.BossRush ? "アルコンコア撃破！" : "";
             IsOverlayOpen = true;
             IsAllStagesCleared = (ActiveMode == GameMode.BossRush) || (CurrentStage >= stages.Count);
@@ -365,7 +537,7 @@ namespace CyberRush
 
         public void AdvanceOrReplay()
         {
-            if (ActiveMode == GameMode.BossRush || ActiveMode == GameMode.VsCpuArena || ActiveMode == GameMode.LocalPvp)
+            if (ActiveMode == GameMode.BossRush || ActiveMode == GameMode.RhythmSurvival || ActiveMode == GameMode.VsCpuArena || ActiveMode == GameMode.LocalPvp)
                 RestartCurrentStage();
             else if (IsAllStagesCleared)
                 StartStage(1);
