@@ -117,21 +117,54 @@ namespace CyberRush
 
     private void BuildAllClips()
     {
-        clips["slash"] = MakeSweepNoiseClip("SFX_Slash", 0.20f, 1800f, 420f, 0.45f, 0.55f);
+        clips["slash"] = MakeSweepNoiseClip("SFX_Slash", 0.19f, 1500f, 380f, 0.55f, 0.55f);
         clips["wave"] = MakeWaveClip("SFX_SwordWave", 0.34f);
         clips["cyclone"] = MakeCycloneClip("SFX_Cyclone", 0.42f);
         clips["slam"] = MakeExplosionClip("SFX_DiveSlam", 0.38f, 165f, 42f, 0.72f);
-        clips["blaster"] = MakeSweepNoiseClip("SFX_Blaster", 0.14f, 1650f, 210f, 0.15f, 0.78f);
-        clips["railgun"] = MakeRailgunClip("SFX_Railgun", 0.48f);
-        clips["scatter"] = MakeSweepNoiseClip("SFX_Scatter", 0.22f, 920f, 140f, 0.65f, 0.68f);
+        clips["blaster"] = MakeHeavyGunshotClip("SFX_Blaster", 0.17f, punchFreq: 195f, crackGain: 0.92f);
+        clips["railgun"] = MakeRailgunClip("SFX_Railgun", 0.50f);
+        clips["scatter"] = MakeHeavyGunshotClip("SFX_Scatter", 0.28f, punchFreq: 145f, crackGain: 1.05f);
         clips["hit"] = MakeHitClangClip("SFX_HitClang", 0.16f);
         clips["deflect"] = MakeDeflectClip("SFX_Deflect", 0.24f);
         clips["explosion"] = MakeExplosionClip("SFX_Explosion", 0.48f, 140f, 32f, 0.85f);
-        clips["dash"] = MakeSweepNoiseClip("SFX_Dash", 0.18f, 2400f, 650f, 0.75f, 0.30f);
+        clips["dash"] = MakeSweepNoiseClip("SFX_Dash", 0.18f, 2100f, 550f, 0.78f, 0.32f);
         clips["jumppad"] = MakeJumpPadClip("SFX_JumpPad", 0.32f);
-        clips["damage"] = MakeSweepNoiseClip("SFX_Damage", 0.24f, 220f, 80f, 0.55f, 0.70f);
+        clips["damage"] = MakeSweepNoiseClip("SFX_Damage", 0.24f, 180f, 65f, 0.65f, 0.72f);
         clips["clear"] = MakeClearFanfareClip("SFX_Clear", 0.95f);
         clips["bgm"] = MakeSynthwaveBgmClip("BGM_Synthwave");
+    }
+
+    private static AudioClip MakeHeavyGunshotClip(string name, float dur, float punchFreq, float crackGain)
+    {
+        int n = Mathf.RoundToInt(dur * SampleRate);
+        float[] d = new float[n];
+        float pSub = 0f;
+        float lp = 0f;
+        float prevNoise = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)n;
+            // Fast 3ms mechanical snap + sub-bass chest thump + gritty bandpass propellant tail
+            float punchEnv = Mathf.Exp(-t * 18.0f);
+            float crackEnv = Mathf.Min(1f, t * 140f) * Mathf.Exp(-t * 11.5f);
+            float snapEnv = Mathf.Exp(-t * 48.0f);
+
+            pSub += Mathf.Lerp(punchFreq, 38f, Mathf.Pow(t, 0.35f)) / SampleRate;
+            float subBody = Mathf.Sin(pSub * 6.28318f) * punchEnv * 0.75f;
+
+            float raw = HashNoise(i * 5 + 17);
+            float hp = raw - prevNoise * 0.65f; // Crisp mid/high crack without harsh low mud
+            prevNoise = raw;
+            lp = Mathf.Lerp(lp, hp, 0.42f);
+
+            // Metallic bolt clack ~14ms
+            float mechClack = Mathf.Sin((i / (float)SampleRate) * 6.28318f * 1180f) * snapEnv * 0.22f;
+
+            float mixed = (subBody + lp * crackEnv * crackGain + mechClack);
+            // Soft-clip saturation for punchy firearm bite
+            d[i] = Mathf.Clamp((float)Math.Tanh(mixed * 1.9f) * 0.88f, -1f, 1f);
+        }
+        return CreateClip(name, d);
     }
 
     private static AudioClip CreateClip(string name, float[] data)

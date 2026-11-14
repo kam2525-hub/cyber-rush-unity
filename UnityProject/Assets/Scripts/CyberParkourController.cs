@@ -257,7 +257,7 @@ namespace CyberRush
             _isDivingSlam = false;
             _velocity.y = Mathf.Max(_velocity.y, upSpeed);
             _horizontalVel += transform.forward * 4.0f;
-            CyberHUD.ShowCallout("BOOST PAD", new Color(0.15f, 0.95f, 1f));
+            CyberHUD.ShowCallout("ブーストパッド！", new Color(0.15f, 0.95f, 1f));
         }
 
         public void OnKillDashReset()
@@ -285,7 +285,7 @@ namespace CyberRush
             if (!isArenaFighter)
             {
                 CyberAudio.Play("damage", 0.85f);
-                CyberHUD.ShowCallout("HIT! INSTANT RETRY", new Color(1f, 0.2f, 0.25f));
+                CyberHUD.ShowCallout("被弾！ リトライ", new Color(1f, 0.2f, 0.25f));
                 if (StageManager.Instance != null)
                     StageManager.Instance.RestartCurrentStage();
                 else
@@ -308,7 +308,7 @@ namespace CyberRush
                     attacker.OnKillDashReset();
                 }
                 CyberAudio.Play("explosion", 0.9f);
-                CyberHUD.ShowCallout($"P{playerId + 1} ELIMINATED!", new Color(1f, 0.25f, 0.35f));
+                CyberHUD.ShowCallout($"PLAYER {playerId + 1} 撃破！", new Color(1f, 0.25f, 0.35f));
                 StartCoroutine(ArenaRespawnRoutine());
                 return true;
             }
@@ -932,7 +932,7 @@ namespace CyberRush
 
             var proj = wave.AddComponent<CyberProjectile>();
             proj.InitCombat(aim.forward, 34f, playerId, this, arenaDamage: 36, enemyUnitDamage: 2, isSwordWave: true, life: 2.2f);
-            CyberHUD.ShowCallout("SWORD WAVE!", waveCol);
+            CyberHUD.ShowCallout("斬撃波！", waveCol);
         }
 
         private void PerformCycloneSlash()
@@ -954,7 +954,7 @@ namespace CyberRush
 
             if (!_cc.isGrounded)
                 _velocity.y = Mathf.Max(_velocity.y, 7.2f);
-            CyberHUD.ShowCallout("CYCLONE VORTEX!", cycCol);
+            CyberHUD.ShowCallout("旋風斬！", cycCol);
         }
 
         private void TriggerDiveSlamImpact()
@@ -975,21 +975,29 @@ namespace CyberRush
             if (playerId == 0) LanPvpManager.Instance?.NotifyLocalAction(4);
 
             Transform aim = playerCamera != null ? playerCamera.transform : transform;
+            Vector3 targetPoint = aim.position + aim.forward * 80f;
+            if (Physics.Raycast(aim.position + aim.forward * 0.6f, aim.forward, out RaycastHit aimHit, 100f))
+            {
+                if (aimHit.collider.GetComponentInParent<CyberParkourController>() != this)
+                    targetPoint = aimHit.point;
+            }
+
+            Vector3 muzzle = aim.position + aim.forward * 0.95f + aim.right * 0.22f - aim.up * 0.13f;
+            Vector3 baseDir = (targetPoint - muzzle).normalized;
             Quaternion jitter = spreadDeg > 0f
                 ? Quaternion.Euler(Random.Range(-spreadDeg, spreadDeg), Random.Range(-spreadDeg, spreadDeg), 0f)
                 : Quaternion.identity;
-            Vector3 dir = jitter * aim.forward;
-            Vector3 muzzle = aim.position + aim.forward * 1.15f + aim.right * 0.24f - aim.up * 0.14f;
+            Vector3 dir = (jitter * baseDir).normalized;
 
             GameObject bolt = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             bolt.name = "PlayerPlasmaBolt";
             bolt.transform.position = muzzle;
-            bolt.transform.localScale = new Vector3(0.24f, 0.24f, 0.78f);
+            bolt.transform.localScale = new Vector3(0.26f, 0.26f, 0.95f);
             bolt.transform.rotation = Quaternion.LookRotation(dir);
 
             var sc = bolt.GetComponent<SphereCollider>();
             sc.isTrigger = true;
-            sc.radius = 0.75f;
+            sc.radius = 0.85f;
 
             var mr = bolt.GetComponent<MeshRenderer>();
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -1000,7 +1008,7 @@ namespace CyberRush
             mr.sharedMaterial = m;
 
             var proj = bolt.AddComponent<CyberProjectile>();
-            proj.InitCombat(dir, 58f, playerId, this, arenaDamage: arenaDmg, enemyUnitDamage: enemyUnitDmg, isSwordWave: false, life: 2.2f);
+            proj.InitCombat(dir, 62f, playerId, this, arenaDamage: arenaDmg, enemyUnitDamage: enemyUnitDmg, isSwordWave: false, life: 2.2f);
         }
 
         private void FireRailgunBeam()
@@ -1013,33 +1021,34 @@ namespace CyberRush
             Vector3 start = aim.position + aim.forward * 1.1f + aim.right * 0.25f - aim.up * 0.14f;
             Vector3 end = aim.position + aim.forward * 85f;
 
-            var hits = Physics.RaycastAll(aim.position, aim.forward, 85f);
+            var hits = Physics.SphereCastAll(aim.position + aim.forward * 0.6f, 0.30f, aim.forward, 85f, ~0, QueryTriggerInteraction.Collide);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            var railHits = new System.Collections.Generic.HashSet<int>();
             foreach (var h in hits)
             {
                 if (h.collider == null) continue;
                 var self = h.collider.GetComponentInParent<CyberParkourController>();
                 if (self == this) continue;
 
-                if (h.collider.GetComponentInParent<CyberEnemy>() is CyberEnemy en && !en.IsDead)
+                if (h.collider.GetComponentInParent<CyberEnemy>() is CyberEnemy en && !en.IsDead && railHits.Add(en.gameObject.GetInstanceID()))
                 {
                     en.TakeSliceDamage(this, 3);
-                    CyberHUD.TriggerHitmarker("RAILGUN!", new Color(1f, 0.85f, 0.25f));
+                    CyberHUD.TriggerHitmarker("レールガン命中！", new Color(1f, 0.85f, 0.25f));
                 }
-                else if (h.collider.GetComponentInParent<CyberBotAI>() is CyberBotAI bot && !bot.IsDead)
+                else if (h.collider.GetComponentInParent<CyberBotAI>() is CyberBotAI bot && !bot.IsDead && railHits.Add(bot.gameObject.GetInstanceID()))
                 {
                     bot.TakeCombatDamage(48, this, playerId);
-                    CyberHUD.TriggerHitmarker("RAILGUN -48!", new Color(1f, 0.85f, 0.25f));
+                    CyberHUD.TriggerHitmarker("レールガン -48!", new Color(1f, 0.85f, 0.25f));
                 }
-                else if (h.collider.GetComponentInParent<RemotePvpAvatar>() != null)
+                else if (h.collider.GetComponentInParent<RemotePvpAvatar>() != null && railHits.Add(h.collider.transform.root.gameObject.GetInstanceID()))
                 {
                     LanPvpManager.Instance?.QueueOutgoingDamage(48);
-                    CyberHUD.TriggerHitmarker("RAILGUN -48!", new Color(1f, 0.85f, 0.25f));
+                    CyberHUD.TriggerHitmarker("レールガン -48!", new Color(1f, 0.85f, 0.25f));
                 }
-                else if (self != null && !self.IsArenaDead)
+                else if (self != null && !self.IsArenaDead && railHits.Add(self.gameObject.GetInstanceID()))
                 {
                     self.TakeCombatDamage(48, this);
-                    CyberHUD.TriggerHitmarker("RAILGUN -48!", new Color(1f, 0.85f, 0.25f));
+                    CyberHUD.TriggerHitmarker("レールガン -48!", new Color(1f, 0.85f, 0.25f));
                 }
                 else if (!h.collider.isTrigger)
                 {
@@ -1049,7 +1058,7 @@ namespace CyberRush
             }
 
             StartCoroutine(ShowRailgunBeamRoutine(start, end));
-            CyberHUD.ShowCallout("RAILGUN BEAM!", new Color(1f, 0.85f, 0.25f));
+            CyberHUD.ShowCallout("レールガン発射！", new Color(1f, 0.85f, 0.25f));
         }
 
         private IEnumerator ShowRailgunBeamRoutine(Vector3 start, Vector3 end)
@@ -1084,7 +1093,7 @@ namespace CyberRush
             for (int i = 0; i < 5; i++)
                 FireBlasterBolt(4.2f, arenaDmg: 14, enemyUnitDmg: 1);
             _blasterCooldown = 0.35f;
-            CyberHUD.ShowCallout("SCATTER BURST!", new Color(0.18f, 0.95f, 1f));
+            CyberHUD.ShowCallout("スキャッターショット！", new Color(0.18f, 0.95f, 1f));
         }
 
         private bool ApplyAreaAttack(Vector3 center, float radius, Vector3 aimFwd, int arenaDmg, int enemyUnitDmg, bool allowDeflect, out bool anyDeflect)
@@ -1104,7 +1113,7 @@ namespace CyberRush
                     {
                         proj.Deflect(aimFwd, playerId, this);
                         CyberVFX.TriggerHitStop(this, 0.035f, 0.1f);
-                        CyberHUD.TriggerHitmarker("DEFLECT!", new Color(0.2f, 0.98f, 1f));
+                        CyberHUD.TriggerHitmarker("弾き返し！", new Color(0.2f, 0.98f, 1f));
                         anyDeflect = true;
                         anyHit = true;
                     }
@@ -1115,7 +1124,7 @@ namespace CyberRush
                 {
                     if (enemy.TakeSliceDamage(this, enemyUnitDmg))
                     {
-                        CyberHUD.TriggerHitmarker("SLICE!", new Color(1f, 0.25f, 0.72f));
+                        CyberHUD.TriggerHitmarker("斬撃命中！", new Color(1f, 0.25f, 0.72f));
                         anyHit = true;
                     }
                 }
@@ -1124,7 +1133,7 @@ namespace CyberRush
                 if (bot != null && !bot.IsDead && hitObjects.Add(bot.gameObject.GetInstanceID()))
                 {
                     bot.TakeCombatDamage(arenaDmg, this, playerId);
-                    CyberHUD.TriggerHitmarker($"SLASH -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
+                    CyberHUD.TriggerHitmarker($"斬撃 -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
                     anyHit = true;
                 }
 
@@ -1132,7 +1141,7 @@ namespace CyberRush
                 if (remote != null && hitObjects.Add(remote.gameObject.GetInstanceID()))
                 {
                     LanPvpManager.Instance?.QueueOutgoingDamage(arenaDmg);
-                    CyberHUD.TriggerHitmarker($"SLASH -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
+                    CyberHUD.TriggerHitmarker($"斬撃 -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
                     anyHit = true;
                 }
 
@@ -1140,7 +1149,7 @@ namespace CyberRush
                 if (opp != null && opp != this && !opp.IsArenaDead && hitObjects.Add(opp.gameObject.GetInstanceID()))
                 {
                     opp.TakeCombatDamage(arenaDmg, this);
-                    CyberHUD.TriggerHitmarker($"P{playerId + 1} HIT -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
+                    CyberHUD.TriggerHitmarker($"P{playerId + 1} 命中 -{arenaDmg}", new Color(1f, 0.25f, 0.72f));
                     anyHit = true;
                 }
             }

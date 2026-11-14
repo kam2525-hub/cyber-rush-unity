@@ -4,14 +4,27 @@ namespace CyberRush
 {
     public class CyberHUD : MonoBehaviour
     {
+        private Font _jpFont;
+        private Texture2D _panelBgTex;
+        private Texture2D _cardBgTex;
+        private Texture2D _btnNormalTex;
+        private Texture2D _btnHoverTex;
+
+        private GUIStyle _headerStyle;
+        private GUIStyle _subHeaderStyle;
         private GUIStyle _titleStyle;
         private GUIStyle _bigTimerStyle;
         private GUIStyle _calloutStyle;
         private GUIStyle _centerStyle;
-        private GUIStyle _menuHeaderStyle;
+        private GUIStyle _labelStyle;
+        private GUIStyle _smallLabelStyle;
+        private GUIStyle _buttonStyle;
+        private GUIStyle _panelStyle;
+        private GUIStyle _cardStyle;
 
         private string _lanIp = "127.0.0.1";
         private string _lanPortStr = "7777";
+        private bool _showControlsHelp = false;
 
         private static string _calloutMsg = "";
         private static Color _calloutColor = Color.cyan;
@@ -31,7 +44,7 @@ namespace CyberRush
         {
             _hitmarkerText = label;
             _hitmarkerColor = col;
-            _hitmarkerTimer = 0.55f;
+            _hitmarkerTimer = 0.65f;
         }
 
         private void Update()
@@ -40,14 +53,112 @@ namespace CyberRush
             if (_hitmarkerTimer > 0f) _hitmarkerTimer -= Time.unscaledDeltaTime;
         }
 
+        private static Texture2D MakeSolidTex(Color col)
+        {
+            var t = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            t.SetPixel(0, 0, col);
+            t.Apply();
+            return t;
+        }
+
         private void InitStyles()
         {
-            if (_titleStyle != null) return;
-            _titleStyle = new GUIStyle(GUI.skin.label) { fontSize = 18, fontStyle = FontStyle.Bold };
-            _bigTimerStyle = new GUIStyle(GUI.skin.label) { fontSize = 30, fontStyle = FontStyle.Bold };
-            _calloutStyle = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            _centerStyle = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            _menuHeaderStyle = new GUIStyle(GUI.skin.label) { fontSize = 34, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
+            if (_headerStyle != null) return;
+
+            _jpFont = Font.CreateDynamicFontFromOSFont(
+                new[] { "Yu Gothic UI", "Meiryo UI", "Meiryo", "MS Gothic", "Arial" }, 16);
+
+            _panelBgTex = MakeSolidTex(new Color(0.03f, 0.05f, 0.11f, 0.94f));
+            _cardBgTex = MakeSolidTex(new Color(0.07f, 0.10f, 0.19f, 0.96f));
+            _btnNormalTex = MakeSolidTex(new Color(0.10f, 0.16f, 0.30f, 0.98f));
+            _btnHoverTex = MakeSolidTex(new Color(0.16f, 0.28f, 0.48f, 1.0f));
+
+            _panelStyle = new GUIStyle();
+            _panelStyle.normal.background = _panelBgTex;
+
+            _cardStyle = new GUIStyle();
+            _cardStyle.normal.background = _cardBgTex;
+
+            _headerStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 32,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _subHeaderStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 14,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold
+            };
+            _bigTimerStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 26,
+                fontStyle = FontStyle.Bold
+            };
+            _calloutStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _centerStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _labelStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 14,
+                fontStyle = FontStyle.Bold
+            };
+            _labelStyle.normal.textColor = new Color(0.92f, 0.96f, 1f);
+
+            _smallLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                font = _jpFont,
+                fontSize = 12,
+                fontStyle = FontStyle.Normal
+            };
+            _smallLabelStyle.normal.textColor = new Color(0.78f, 0.88f, 0.98f);
+
+            _buttonStyle = new GUIStyle(GUI.skin.button)
+            {
+                font = _jpFont,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _buttonStyle.normal.background = _btnNormalTex;
+            _buttonStyle.hover.background = _btnHoverTex;
+            _buttonStyle.active.background = _btnHoverTex;
+            _buttonStyle.normal.textColor = Color.white;
+            _buttonStyle.hover.textColor = new Color(0.25f, 0.98f, 1f);
+            _buttonStyle.active.textColor = Color.white;
+        }
+
+        private static void DrawOutlineBox(Rect r, Color borderCol, float thickness = 2f)
+        {
+            Color prev = GUI.color;
+            GUI.color = borderCol;
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width, thickness), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x, r.yMax - thickness, r.width, thickness), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x, r.y, thickness, r.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.xMax - thickness, r.y, thickness, r.height), Texture2D.whiteTexture);
+            GUI.color = prev;
         }
 
         private void OnGUI()
@@ -68,13 +179,13 @@ namespace CyberRush
                 DrawPlayerHud(sm, sm.Player1, new Rect(0, 0, halfW, Screen.height));
                 DrawPlayerHud(sm, sm.Player2, new Rect(halfW, 0, halfW, Screen.height));
 
-                // Split-Screen Center Neon Divider
-                GUI.color = new Color(0.15f, 0.95f, 1f, 0.85f);
+                GUI.color = new Color(0.15f, 0.95f, 1f, 0.95f);
                 GUI.DrawTexture(new Rect(halfW - 2f, 0, 4f, Screen.height), Texture2D.whiteTexture);
                 GUI.color = Color.white;
             }
             else if (sm.Player1 != null)
             {
+                DrawWorldTargetMarkers(sm, sm.Player1.playerCamera);
                 DrawPlayerHud(sm, sm.Player1, new Rect(0, 0, Screen.width, Screen.height));
             }
 
@@ -88,140 +199,204 @@ namespace CyberRush
         {
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
+            float panelW = 640f;
+            float panelH = _showControlsHelp ? 590f : 510f;
+            Rect panelRect = new Rect(cx - panelW * 0.5f, cy - panelH * 0.5f, panelW, panelH);
 
-            GUI.color = new Color(0.02f, 0.03f, 0.08f, 0.84f);
-            GUI.Box(new Rect(cx - 330, cy - 265, 660, 530), GUIContent.none);
-            GUI.color = new Color(0.15f, 0.95f, 1f, 0.8f);
-            GUI.DrawTexture(new Rect(cx - 330, cy - 265, 660, 4), Texture2D.whiteTexture);
-            GUI.color = new Color(1f, 0.2f, 0.72f, 0.8f);
-            GUI.DrawTexture(new Rect(cx - 330, cy + 261, 660, 4), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            GUI.Box(panelRect, GUIContent.none, _panelStyle);
+            DrawOutlineBox(panelRect, new Color(0.16f, 0.92f, 1f, 0.85f), 2f);
 
-            _menuHeaderStyle.normal.textColor = new Color(0.18f, 0.95f, 1f);
-            GUI.Label(new Rect(cx - 310, cy - 252, 620, 48), "CYBER RUSH // KATANA x RAILGUN", _menuHeaderStyle);
+            float y = panelRect.y + 20f;
+            _headerStyle.normal.textColor = new Color(0.22f, 0.96f, 1f);
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 44), "CYBER RUSH // サイバー剣戟×銃撃", _headerStyle);
+            y += 44f;
 
-            _centerStyle.normal.textColor = new Color(0.85f, 0.9f, 1f);
-            GUI.Label(new Rect(cx - 300, cy - 208, 600, 24), "FPS PARKOUR  |  SWORD SKILLS  |  BLASTER & RAILGUN  |  CPU & PVP DUEL", _centerStyle);
+            _subHeaderStyle.normal.textColor = new Color(0.80f, 0.88f, 0.98f);
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "一人称パルクール ・ 各種剣技 ・ ブラスター＆レールガン ・ CPU戦・対人戦", _subHeaderStyle);
+            y += 34f;
 
-            float bw = 380f;
+            float bw = 480f;
             float bx = cx - bw * 0.5f;
-            float y = cy - 172f;
 
-            GUI.color = new Color(0.16f, 0.95f, 1f);
-            if (GUI.Button(new Rect(bx, y, bw, 38), "1. PARKOUR STAGES (STAGE 1 - 3)"))
+            if (DrawAccentButton(new Rect(bx, y, bw, 44), "1. 通常ステージ (STAGE 1〜3 攻略)", new Color(0.16f, 0.95f, 1f)))
                 sm.StartParkour(1);
-            y += 45f;
+            y += 52f;
 
-            GUI.color = new Color(1f, 0.78f, 0.22f);
-            if (GUI.Button(new Rect(bx, y, bw, 38), "2. BOSS RUSH (ARCHON CORE DUEL)"))
+            if (DrawAccentButton(new Rect(bx, y, bw, 44), "2. ボスラッシュ (巨大アルコンコア決戦)", new Color(1f, 0.78f, 0.22f)))
                 sm.StartBossRush();
-            y += 45f;
+            y += 52f;
 
-            GUI.color = new Color(0.25f, 0.98f, 0.65f);
-            if (GUI.Button(new Rect(bx, y, bw, 38), "3. VS CPU ARENA (1v2 CYBER NINJAS)"))
+            if (DrawAccentButton(new Rect(bx, y, bw, 44), "3. CPU対戦アリーナ (vs AI忍者2体・8キル先取)", new Color(0.25f, 0.98f, 0.65f)))
                 sm.StartVsCpuArena();
-            y += 45f;
+            y += 52f;
 
-            GUI.color = new Color(1f, 0.26f, 0.72f);
-            if (GUI.Button(new Rect(bx, y, bw, 38), "4. LOCAL 2P PVP (SPLIT-SCREEN ONE PC)"))
+            if (DrawAccentButton(new Rect(bx, y, bw, 44), "4. オフライン2P対人戦 (1台のPCで画面分割・5キル先取)", new Color(1f, 0.30f, 0.75f)))
                 sm.StartLocalPvp();
-            y += 48f;
+            y += 56f;
 
-            // LAN / Direct-IP Row
-            GUI.color = new Color(0.05f, 0.08f, 0.16f, 0.9f);
-            GUI.Box(new Rect(cx - 260, y, 520, 56), GUIContent.none);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(cx - 248, y + 6, 120, 20), "5. LAN / IP PVP:");
-            _lanIp = GUI.TextField(new Rect(cx - 248, y + 26, 165, 22), _lanIp);
-            _lanPortStr = GUI.TextField(new Rect(cx - 75, y + 26, 65, 22), _lanPortStr);
-
+            // LAN / IP Row
+            Rect lanBox = new Rect(bx, y, bw, 62);
+            GUI.Box(lanBox, GUIContent.none, _cardStyle);
+            DrawOutlineBox(lanBox, new Color(0.35f, 0.55f, 0.85f, 0.7f), 1f);
+            GUI.Label(new Rect(bx + 12, y + 6, 200, 20), "5. LAN / IP 通信対人戦", _labelStyle);
+            _lanIp = GUI.TextField(new Rect(bx + 12, y + 29, 150, 24), _lanIp);
+            _lanPortStr = GUI.TextField(new Rect(bx + 170, y + 29, 62, 24), _lanPortStr);
             int port = int.TryParse(_lanPortStr, out int p) ? p : 7777;
-            GUI.color = new Color(0.18f, 0.95f, 1f);
-            if (GUI.Button(new Rect(cx + 0, y + 14, 115, 32), "HOST GAME"))
+
+            if (DrawAccentButton(new Rect(bx + 244, y + 16, 108, 36), "ホスト作成", new Color(0.18f, 0.95f, 1f)))
                 sm.StartLanPvp(true, _lanIp, port);
-            GUI.color = new Color(1f, 0.55f, 0.2f);
-            if (GUI.Button(new Rect(cx + 125, y + 14, 120, 32), "JOIN IP"))
+            if (DrawAccentButton(new Rect(bx + 360, y + 16, 108, 36), "IP参加", new Color(1f, 0.58f, 0.22f)))
                 sm.StartLanPvp(false, _lanIp, port);
+            y += 74f;
 
-            y += 66f;
-            GUI.color = new Color(0.75f, 0.88f, 0.98f);
-            GUI.Label(new Rect(cx - 300, y, 600, 118),
-                "P1 CONTROLS: [WASD] Move | [Space] Jump/WallJump | [Shift/RMB] Dash/SlowMo | [E] Grapple\n" +
-                "WEAPONS & SKILLS: [1] Katana  [2] Blaster (or Wheel) | [G] Quick Shot | [M] Sound\n" +
-                "   Katana: [LMB] 3-Hit & Deflect | [Q] Sword Wave | [F] Cyclone Spin | Air+[C] Dive Slam\n" +
-                "   Blaster: [LMB] Pulse Laser  | [Q] Railgun Beam | [F] Scatter Shot\n" +
-                "P2 (SPLIT-SCREEN): [Arrows] Move | [IJKL] Look | [Enter] Jump | [/] Dash | [U] Attack | [O] Skill1 | [P] Skill2 | [RCtrl] Weapon");
-
+            // Bottom Footer Buttons
             bool muted = CyberAudio.Instance != null && CyberAudio.Instance.IsMuted;
-            GUI.color = muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f);
-            if (GUI.Button(new Rect(cx - 85, cy + 220, 170, 30), muted ? "AUDIO: MUTED [M]" : "AUDIO: ON [M]"))
-            {
+            string muteLabel = muted ? "音声: ミュート中 [M]" : "音声: ON [M]";
+            if (DrawAccentButton(new Rect(bx, y, 232, 36), muteLabel, muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f)))
                 CyberAudio.Instance?.ToggleMute();
+
+            string helpLabel = _showControlsHelp ? "操作ガイドを閉じる ▲" : "操作ガイドを見る ▼";
+            if (DrawAccentButton(new Rect(bx + 248, y, 232, 36), helpLabel, new Color(0.75f, 0.85f, 1f)))
+                _showControlsHelp = !_showControlsHelp;
+            y += 46f;
+
+            if (_showControlsHelp)
+            {
+                Rect helpRect = new Rect(bx, y, bw, 92);
+                GUI.Box(helpRect, GUIContent.none, _cardStyle);
+                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 82),
+                    "【基本】WASD:移動 | Space:ジャンプ/壁走り | Shift/右クリ:ダッシュ/スロー | E:ワイヤー\n" +
+                    "【武器】[1]カタナ [2]銃 (ホイール切替) | [G]クイック銃撃 | [C]スライディング/空中急降下斬\n" +
+                    "【技】左クリ:通常斬撃・弾き/射撃 | [Q]斬撃波/レールガン | [F]旋風斬/拡散弾 | [M]音ON/OFF\n" +
+                    "【2P対戦】移動:矢印 | 視点:IJKL | Jump:Enter | 攻撃:U | 技:O/P | 切替:右Ctrl | ダッシュ:/",
+                    _smallLabelStyle);
             }
-            GUI.color = Color.white;
+        }
+
+        private bool DrawAccentButton(Rect r, string text, Color accent)
+        {
+            bool clicked = GUI.Button(r, text, _buttonStyle);
+            DrawOutlineBox(r, accent, 1.5f);
+            return clicked;
+        }
+
+        private void DrawWorldTargetMarkers(StageManager sm, Camera cam)
+        {
+            if (cam == null) return;
+
+            if (sm.ActiveMode == GameMode.VsCpuArena)
+            {
+                foreach (var bot in FindObjectsByType<CyberBotAI>(FindObjectsSortMode.None))
+                {
+                    if (bot.IsDead) continue;
+                    Vector3 worldPos = bot.transform.position + Vector3.up * 2.25f;
+                    Vector3 sp = cam.WorldToScreenPoint(worldPos);
+                    if (sp.z <= 0.2f) continue;
+
+                    float x = sp.x - 48f;
+                    float y = Screen.height - sp.y - 24f;
+                    GUI.Box(new Rect(x, y, 96f, 24f), GUIContent.none, _panelStyle);
+                    _smallLabelStyle.alignment = TextAnchor.MiddleCenter;
+                    _smallLabelStyle.normal.textColor = bot.accentColor;
+                    GUI.Label(new Rect(x, y - 1f, 96f, 16f), $"{bot.botName.Replace("CYBER NINJA ", "AI ")}", _smallLabelStyle);
+                    _smallLabelStyle.alignment = TextAnchor.UpperLeft;
+
+                    GUI.color = new Color(0.2f, 0.22f, 0.28f);
+                    GUI.DrawTexture(new Rect(x + 6, y + 16, 84f, 5f), Texture2D.whiteTexture);
+                    GUI.color = bot.accentColor;
+                    GUI.DrawTexture(new Rect(x + 6, y + 16, 84f * Mathf.Clamp01(bot.CurrentHp / (float)bot.maxHp), 5f), Texture2D.whiteTexture);
+                    GUI.color = Color.white;
+                }
+            }
+            else if (sm.ActiveMode == GameMode.BossRush || (sm.ActiveMode == GameMode.Parkour && sm.CurrentStage == 3))
+            {
+                foreach (var en in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
+                {
+                    if (en.IsDead || en.kind != EnemyKind.CoreBoss) continue;
+                    Vector3 sp = cam.WorldToScreenPoint(en.transform.position + Vector3.up * 4.5f);
+                    if (sp.z <= 0.2f) continue;
+
+                    float x = sp.x - 65f;
+                    float y = Screen.height - sp.y - 26f;
+                    GUI.Box(new Rect(x, y, 130f, 26f), GUIContent.none, _panelStyle);
+                    _smallLabelStyle.alignment = TextAnchor.MiddleCenter;
+                    _smallLabelStyle.normal.textColor = new Color(1f, 0.35f, 0.78f);
+                    GUI.Label(new Rect(x, y, 130f, 16f), $"アルコンコア HP:{en.CurrentHp}/{en.maxHp}", _smallLabelStyle);
+                    _smallLabelStyle.alignment = TextAnchor.UpperLeft;
+
+                    GUI.color = new Color(0.25f, 0.2f, 0.28f);
+                    GUI.DrawTexture(new Rect(x + 8, y + 17, 114f, 6f), Texture2D.whiteTexture);
+                    GUI.color = new Color(1f, 0.22f, 0.72f);
+                    GUI.DrawTexture(new Rect(x + 8, y + 17, 114f * Mathf.Clamp01(en.CurrentHp / (float)en.maxHp), 6f), Texture2D.whiteTexture);
+                    GUI.color = Color.white;
+                }
+            }
         }
 
         private void DrawGlobalHeader(StageManager sm)
         {
             float cx = Screen.width * 0.5f;
 
-            // Top-Left Card (Stage or Match Info)
-            GUI.color = new Color(0.03f, 0.04f, 0.10f, 0.78f);
-            GUI.Box(new Rect(14, 14, 310, 74), GUIContent.none);
-            GUI.color = Color.white;
+            Rect tlRect = new Rect(14, 14, 290, 74);
+            GUI.Box(tlRect, GUIContent.none, _panelStyle);
+            DrawOutlineBox(tlRect, new Color(0.18f, 0.92f, 1f, 0.7f), 1.5f);
 
-            _titleStyle.normal.textColor = new Color(0.18f, 0.95f, 1f);
+            _titleStyle.normal.textColor = new Color(0.22f, 0.95f, 1f);
             string titleText = sm.ActiveMode == GameMode.Parkour
-                ? sm.GetCurrentConfig().stageName
+                ? $"ステージ {sm.CurrentStage} / 3"
                 : (sm.ActiveMode == GameMode.BossRush
-                    ? "BOSS RUSH // ARCHON SPIRE"
+                    ? "ボスラッシュ // アルコンコア戦"
                     : (sm.ActiveMode == GameMode.VsCpuArena
-                        ? "VS CPU ARENA // 1v2 NINJAS"
-                        : (sm.ActiveMode == GameMode.LocalPvp ? "LOCAL 2P PVP DUEL" : "LAN PVP DUEL")));
-            GUI.Label(new Rect(24, 18, 295, 26), titleText, _titleStyle);
+                        ? "CPUアリーナ (vs AI忍者2体)"
+                        : (sm.ActiveMode == GameMode.LocalPvp ? "オフライン2P対人戦" : "LAN通信対人戦")));
+            GUI.Label(new Rect(24, 18, 272, 24), titleText, _titleStyle);
 
-            _bigTimerStyle.normal.textColor = new Color(1f, 0.85f, 0.25f);
-            GUI.Label(new Rect(24, 44, 160, 38), $"{sm.StageElapsed:00.00}s", _bigTimerStyle);
-            GUI.color = new Color(0.75f, 0.88f, 1f);
-            GUI.Label(new Rect(168, 52, 145, 24), $"[ESC] MENU  |  KILLS: {sm.StageKills}");
-            GUI.color = Color.white;
+            _bigTimerStyle.normal.textColor = new Color(1f, 0.86f, 0.25f);
+            GUI.Label(new Rect(24, 42, 130, 36), $"{sm.StageElapsed:00.00}秒", _bigTimerStyle);
+            GUI.Label(new Rect(150, 50, 145, 24), $"撃破:{sm.StageKills}  [ESC]メニュー", _smallLabelStyle);
 
-            // Top-Center Match Objectives
+            // Top-Center Objectives
             if ((sm.ActiveMode == GameMode.Parkour && sm.CurrentStage == 3) || sm.ActiveMode == GameMode.BossRush)
             {
                 int rem = sm.RemainingBossPylons();
-                GUI.color = new Color(0.04f, 0.04f, 0.12f, 0.82f);
-                GUI.Box(new Rect(cx - 210f, 14, 420, 38), GUIContent.none);
-                GUI.color = rem > 0 ? new Color(0.2f, 0.95f, 1f) : new Color(1f, 0.25f, 0.72f);
-                string bossHint = rem > 0 ? $"SHATTER BOSS SHIELD PYLONS ({3 - rem}/3)" : "BOSS SHIELD DOWN! DESTROY THE ARCHON CORE!";
-                GUI.Label(new Rect(cx - 210f, 20, 420, 28), bossHint, _centerStyle);
-                GUI.color = Color.white;
+                Rect objRect = new Rect(cx - 210f, 14, 420, 40);
+                GUI.Box(objRect, GUIContent.none, _panelStyle);
+                Color border = rem > 0 ? new Color(0.2f, 0.95f, 1f) : new Color(1f, 0.25f, 0.72f);
+                DrawOutlineBox(objRect, border, 1.5f);
+                _centerStyle.normal.textColor = border;
+                string bossHint = rem > 0
+                    ? $"ボスのシールド装置（パイロン）を破壊せよ！ ({3 - rem}/3)"
+                    : "シールド解除！ ボス本体（アルコンコア）を撃破せよ！";
+                GUI.Label(new Rect(cx - 205f, 20, 410, 28), bossHint, _centerStyle);
             }
             else if (sm.ActiveMode == GameMode.VsCpuArena && sm.Player1 != null)
             {
-                GUI.color = new Color(0.04f, 0.04f, 0.12f, 0.82f);
-                GUI.Box(new Rect(cx - 190f, 14, 380, 38), GUIContent.none);
+                Rect objRect = new Rect(cx - 190f, 14, 380, 40);
+                GUI.Box(objRect, GUIContent.none, _panelStyle);
+                DrawOutlineBox(objRect, new Color(0.25f, 0.98f, 0.65f), 1.5f);
                 _centerStyle.normal.textColor = new Color(0.25f, 0.98f, 0.65f);
-                GUI.Label(new Rect(cx - 190f, 20, 380, 28), $"SCORE: PLAYER {sm.Player1.ArenaKills} / {sm.ArenaTargetKills}", _centerStyle);
+                GUI.Label(new Rect(cx - 185f, 20, 370, 28), $"目標：AI忍者を倒せ！ (撃破 {sm.Player1.ArenaKills} / {sm.ArenaTargetKills})", _centerStyle);
             }
             else if (sm.ActiveMode == GameMode.LocalPvp && sm.Player1 != null && sm.Player2 != null)
             {
-                GUI.color = new Color(0.04f, 0.04f, 0.12f, 0.86f);
-                GUI.Box(new Rect(cx - 195f, 14, 390, 38), GUIContent.none);
+                Rect objRect = new Rect(cx - 195f, 14, 390, 40);
+                GUI.Box(objRect, GUIContent.none, _panelStyle);
+                DrawOutlineBox(objRect, Color.white, 1.5f);
                 _centerStyle.normal.textColor = Color.white;
-                GUI.Label(new Rect(cx - 195f, 20, 390, 28),
-                    $"P1: {sm.Player1.ArenaKills} KILLS   vs   P2: {sm.Player2.ArenaKills} KILLS   (FIRST TO {sm.ArenaTargetKills})",
+                GUI.Label(new Rect(cx - 190f, 20, 380, 28),
+                    $"P1: {sm.Player1.ArenaKills}勝   vs   P2: {sm.Player2.ArenaKills}勝   ({sm.ArenaTargetKills}勝先取)",
                     _centerStyle);
             }
             else if (sm.ActiveMode == GameMode.LanPvp && LanPvpManager.Instance != null)
             {
-                GUI.color = new Color(0.04f, 0.04f, 0.12f, 0.86f);
-                GUI.Box(new Rect(cx - 230f, 14, 460, 38), GUIContent.none);
-                _centerStyle.normal.textColor = LanPvpManager.Instance.IsConnected ? new Color(0.25f, 0.98f, 0.65f) : new Color(1f, 0.8f, 0.25f);
+                Rect objRect = new Rect(cx - 230f, 14, 460, 40);
+                GUI.Box(objRect, GUIContent.none, _panelStyle);
+                Color c = LanPvpManager.Instance.IsConnected ? new Color(0.25f, 0.98f, 0.65f) : new Color(1f, 0.8f, 0.25f);
+                DrawOutlineBox(objRect, c, 1.5f);
+                _centerStyle.normal.textColor = c;
                 int rHp = LanPvpManager.Instance.RemoteAvatar != null ? LanPvpManager.Instance.RemoteAvatar.remoteHp : 0;
-                GUI.Label(new Rect(cx - 230f, 20, 460, 28), $"{LanPvpManager.Instance.StatusText}  |  OPPONENT HP: {rHp}", _centerStyle);
+                GUI.Label(new Rect(cx - 225f, 20, 450, 28), $"{LanPvpManager.Instance.StatusText}  |  相手HP: {rHp}", _centerStyle);
             }
-            GUI.color = Color.white;
         }
 
         private void DrawPlayerHud(StageManager sm, CyberParkourController p, Rect vr)
@@ -233,8 +408,8 @@ namespace CyberRush
             if (p.DamageFlashActive || p.HorizontalSpeed > 16.5f || p.IsSlowMo)
             {
                 Color edgeCol = p.DamageFlashActive
-                    ? new Color(1f, 0.12f, 0.18f, 0.35f)
-                    : (p.IsSlowMo ? new Color(1f, 0.16f, 0.72f, 0.22f) : new Color(0.12f, 0.95f, 1.0f, 0.14f));
+                    ? new Color(1f, 0.12f, 0.18f, 0.42f)
+                    : (p.IsSlowMo ? new Color(1f, 0.16f, 0.72f, 0.25f) : new Color(0.12f, 0.95f, 1.0f, 0.14f));
                 GUI.color = edgeCol;
                 GUI.DrawTexture(new Rect(vr.x, vr.y, vr.width, 5), Texture2D.whiteTexture);
                 GUI.DrawTexture(new Rect(vr.x, vr.yMax - 5, vr.width, 5), Texture2D.whiteTexture);
@@ -248,84 +423,109 @@ namespace CyberRush
                 ? new Color(1f, 0.2f, 0.68f)
                 : (p.HoveredGrapple != null ? new Color(1f, 0.82f, 0.22f) : new Color(0.2f, 0.96f, 1f));
             GUI.color = retCol;
-            GUI.DrawTexture(new Rect(cx - 8, cy - 1, 5, 2), Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(cx + 3, cy - 1, 5, 2), Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(cx - 1, cy - 8, 2, 5), Texture2D.whiteTexture);
-            GUI.DrawTexture(new Rect(cx - 1, cy + 3, 2, 5), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(cx - 9, cy - 1, 6, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(cx + 3, cy - 1, 6, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(cx - 1, cy - 9, 2, 6), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(cx - 1, cy + 3, 2, 6), Texture2D.whiteTexture);
+            GUI.color = Color.white;
 
             if (p.HoveredGrapple != null)
             {
                 _centerStyle.normal.textColor = new Color(1f, 0.85f, 0.22f);
-                GUI.Label(new Rect(cx - 90, cy + 16, 180, 24), p.playerId == 0 ? "[E] GRAPPLE" : "[]] GRAPPLE", _centerStyle);
+                GUI.Label(new Rect(cx - 90, cy + 16, 180, 24), p.playerId == 0 ? "[E] ワイヤー移動" : "[]] ワイヤー移動", _centerStyle);
             }
             if (p.playerId == 0 && _hitmarkerTimer > 0f)
             {
                 _centerStyle.normal.textColor = _hitmarkerColor;
-                GUI.Label(new Rect(cx - 120, cy - 40, 240, 24), _hitmarkerText, _centerStyle);
+                GUI.Label(new Rect(cx - 120, cy - 42, 240, 24), _hitmarkerText, _centerStyle);
             }
             if (p.playerId == 0 && _calloutTimer > 0f)
             {
                 _calloutStyle.normal.textColor = _calloutColor;
-                GUI.Label(new Rect(cx - 220, cy - 102, 440, 32), _calloutMsg, _calloutStyle);
+                GUI.Label(new Rect(cx - 240, cy - 110, 480, 34), _calloutMsg, _calloutStyle);
             }
             if (p.IsArenaDead)
             {
                 _calloutStyle.normal.textColor = new Color(1f, 0.25f, 0.3f);
-                GUI.Label(new Rect(cx - 140, cy - 20, 280, 40), "RESPAWNING...", _calloutStyle);
+                GUI.Label(new Rect(cx - 140, cy - 20, 280, 40), "リスポーン中...", _calloutStyle);
             }
-            GUI.color = Color.white;
 
-            // Bottom-Left Stats Card inside Viewport
-            float boxW = Mathf.Min(315f, vr.width - 24f);
-            float boxH = p.isArenaFighter ? 104f : 86f;
-            float bx = vr.x + 12f;
-            float by = vr.yMax - boxH - 12f;
-            GUI.color = new Color(0.03f, 0.04f, 0.10f, 0.78f);
-            GUI.Box(new Rect(bx, by, boxW, boxH), GUIContent.none);
+            // Bottom-Left: HP, Speed, Dash Charges
+            float blW = Mathf.Min(275f, vr.width * 0.46f);
+            float blH = p.isArenaFighter ? 92f : 68f;
+            Rect blRect = new Rect(vr.x + 14f, vr.yMax - blH - 14f, blW, blH);
+            GUI.Box(blRect, GUIContent.none, _panelStyle);
+            DrawOutlineBox(blRect, new Color(0.18f, 0.92f, 1f, 0.7f), 1.5f);
 
-            float rowY = by + 8f;
+            float rowY = blRect.y + 8f;
             if (p.isArenaFighter)
             {
-                GUI.color = new Color(0.95f, 0.98f, 1f);
-                GUI.Label(new Rect(bx + 10, rowY - 2, 80, 22), $"HP {p.ArenaHp}");
-                GUI.color = new Color(0.18f, 0.18f, 0.24f);
-                GUI.DrawTexture(new Rect(bx + 90, rowY + 3, boxW - 104, 12), Texture2D.whiteTexture);
+                GUI.Label(new Rect(blRect.x + 10, rowY - 1, 76, 22), $"HP {p.ArenaHp}", _labelStyle);
+                GUI.color = new Color(0.18f, 0.20f, 0.28f);
+                GUI.DrawTexture(new Rect(blRect.x + 86, rowY + 4, blW - 98, 12), Texture2D.whiteTexture);
                 GUI.color = p.ArenaHp > 35 ? new Color(0.2f, 0.98f, 0.65f) : new Color(1f, 0.2f, 0.3f);
-                GUI.DrawTexture(new Rect(bx + 90, rowY + 3, (boxW - 104) * Mathf.Clamp01(p.ArenaHp / (float)p.arenaMaxHp), 12), Texture2D.whiteTexture);
-                rowY += 22f;
+                GUI.DrawTexture(new Rect(blRect.x + 86, rowY + 4, (blW - 98) * Mathf.Clamp01(p.ArenaHp / (float)p.arenaMaxHp), 12), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                rowY += 24f;
             }
 
-            GUI.color = Color.white;
             int kmh = Mathf.RoundToInt(p.HorizontalSpeed * 3.6f);
-            GUI.Label(new Rect(bx + 10, rowY, 105, 22), $"SPD {kmh}");
-            float pipW = (boxW - 128f) * 0.48f;
+            GUI.Label(new Rect(blRect.x + 10, rowY, 95, 22), $"速度 {kmh}km/h", _labelStyle);
+            float pipW = (blW - 122f) * 0.48f;
             for (int d = 0; d < p.MaxDashes; d++)
             {
-                float px = bx + 114f + d * (pipW + 6f);
-                GUI.color = new Color(0.15f, 0.2f, 0.28f);
-                GUI.DrawTexture(new Rect(px, rowY + 4, pipW, 12), Texture2D.whiteTexture);
+                float px = blRect.x + 108f + d * (pipW + 6f);
+                GUI.color = new Color(0.16f, 0.20f, 0.28f);
+                GUI.DrawTexture(new Rect(px, rowY + 5, pipW, 12), Texture2D.whiteTexture);
                 float fill = d < p.DashCharges ? 1f : (d == p.DashCharges ? p.DashRechargeRatio : 0f);
                 GUI.color = new Color(0.15f, 0.95f, 1f);
-                GUI.DrawTexture(new Rect(px, rowY + 4, pipW * fill, 12), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(px, rowY + 5, pipW * fill, 12), Texture2D.whiteTexture);
+                GUI.color = Color.white;
             }
+            rowY += 25f;
+            GUI.Label(new Rect(blRect.x + 10, rowY, blW - 16, 20),
+                p.playerId == 0 ? "[Shift]ダッシュ  [C]スライディング/急降下" : "[/]ダッシュ  [;]急降下  [RCtrl]武器切替",
+                _smallLabelStyle);
 
-            rowY += 24f;
-            string wepName = p.ActiveWeapon == CyberWeaponMode.Katana ? "[1] KATANA" : "[2] BLASTER";
-            GUI.color = p.ActiveWeapon == CyberWeaponMode.Katana ? new Color(0.2f, 0.95f, 1f) : new Color(1f, 0.78f, 0.22f);
-            GUI.Label(new Rect(bx + 10, rowY, 130, 22), wepName);
+            // Bottom-Right: Weapon & Skill Bar
+            float brW = Mathf.Min(310f, vr.width * 0.48f);
+            float brH = 92f;
+            Rect brRect = new Rect(vr.xMax - brW - 14f, vr.yMax - brH - 14f, brW, brH);
+            GUI.Box(brRect, GUIContent.none, _panelStyle);
+            Color wepCol = p.ActiveWeapon == CyberWeaponMode.Katana ? new Color(0.2f, 0.95f, 1f) : new Color(1f, 0.78f, 0.22f);
+            DrawOutlineBox(brRect, wepCol, 1.5f);
 
-            string qName = p.ActiveWeapon == CyberWeaponMode.Katana ? "WAVE" : "RAIL";
-            string fName = p.ActiveWeapon == CyberWeaponMode.Katana ? "SPIN" : "SCAT";
-            GUI.color = p.SkillQReadyRatio >= 0.99f ? new Color(0.2f, 0.98f, 1f) : new Color(0.5f, 0.55f, 0.65f);
-            GUI.Label(new Rect(bx + 138, rowY, 82, 22), $"{(p.playerId == 0 ? "[Q]" : "[O]")}{qName}");
-            GUI.color = p.SkillFReadyRatio >= 0.99f ? new Color(1f, 0.28f, 0.75f) : new Color(0.5f, 0.55f, 0.65f);
-            GUI.Label(new Rect(bx + 220, rowY, 82, 22), $"{(p.playerId == 0 ? "[F]" : "[P]")}{fName}");
+            string wepName = p.ActiveWeapon == CyberWeaponMode.Katana ? "装備中: カタナ  ([1]/[2]で銃へ切替)" : "装備中: サイバー銃  ([1]/[2]で刀へ切替)";
+            if (p.playerId == 1)
+                wepName = p.ActiveWeapon == CyberWeaponMode.Katana ? "P2装備: カタナ" : "P2装備: サイバー銃";
+            _labelStyle.normal.textColor = wepCol;
+            GUI.Label(new Rect(brRect.x + 10, brRect.y + 7, brW - 18, 22), wepName, _labelStyle);
+            _labelStyle.normal.textColor = new Color(0.92f, 0.96f, 1f);
 
-            rowY += 22f;
-            GUI.color = new Color(0.75f, 0.86f, 0.95f);
-            GUI.Label(new Rect(bx + 10, rowY, boxW - 18, 22),
-                p.playerId == 0 ? "[G] QuickShot  Air+[C] DiveSlam  [M] Mute" : "[Arrow/IJKL] [U]Atk [;/Ctrl]Slam/Wep");
+            // Skill Q & Skill F Bars
+            string qLabel = p.ActiveWeapon == CyberWeaponMode.Katana ? (p.playerId == 0 ? "[Q] 斬撃波" : "[O] 斬撃波") : (p.playerId == 0 ? "[Q] レールガン" : "[O] レールガン");
+            string fLabel = p.ActiveWeapon == CyberWeaponMode.Katana ? (p.playerId == 0 ? "[F] 旋風斬" : "[P] 旋風斬") : (p.playerId == 0 ? "[F] 拡散ショット" : "[P] 拡散弾");
+            float halfSkillW = (brW - 28f) * 0.5f;
+
+            DrawSkillSlot(new Rect(brRect.x + 10, brRect.y + 32, halfSkillW, 30), qLabel, p.SkillQReadyRatio, new Color(0.18f, 0.95f, 1f));
+            DrawSkillSlot(new Rect(brRect.x + 18 + halfSkillW, brRect.y + 32, halfSkillW, 30), fLabel, p.SkillFReadyRatio, new Color(1f, 0.28f, 0.75f));
+
+            GUI.Label(new Rect(brRect.x + 10, brRect.y + 66, brW - 18, 20),
+                p.playerId == 0 ? "[左クリ]攻撃  [G]クイック銃撃  [M]消音" : "[U]攻撃  [H]クイック銃撃",
+                _smallLabelStyle);
+        }
+
+        private void DrawSkillSlot(Rect r, string label, float readyRatio, Color accent)
+        {
+            GUI.Box(r, GUIContent.none, _cardStyle);
+            GUI.color = new Color(accent.r, accent.g, accent.b, readyRatio >= 0.99f ? 0.30f : 0.14f);
+            GUI.DrawTexture(new Rect(r.x, r.yMax - 5f, r.width * readyRatio, 5f), Texture2D.whiteTexture);
             GUI.color = Color.white;
+            _smallLabelStyle.normal.textColor = readyRatio >= 0.99f ? Color.white : new Color(0.55f, 0.62f, 0.72f);
+            _smallLabelStyle.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(r.x, r.y + 1, r.width, 22), label, _smallLabelStyle);
+            _smallLabelStyle.alignment = TextAnchor.UpperLeft;
+            _smallLabelStyle.normal.textColor = new Color(0.78f, 0.88f, 0.98f);
         }
 
         private void DrawResultOverlay(StageManager sm)
@@ -333,35 +533,33 @@ namespace CyberRush
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
 
-            GUI.color = new Color(0.02f, 0.03f, 0.08f, 0.88f);
-            GUI.Box(new Rect(cx - 245, cy - 135, 490, 270), GUIContent.none);
+            Rect ovRect = new Rect(cx - 250, cy - 135, 500, 270);
+            GUI.Box(ovRect, GUIContent.none, _panelStyle);
+            DrawOutlineBox(ovRect, new Color(0.16f, 0.95f, 1f), 2f);
 
-            _bigTimerStyle.normal.textColor = new Color(0.15f, 0.95f, 1f);
+            _calloutStyle.normal.textColor = new Color(0.2f, 0.96f, 1f);
             string header = !string.IsNullOrEmpty(sm.ArenaWinnerText)
                 ? sm.ArenaWinnerText
-                : (sm.IsAllStagesCleared ? "CYBER RUSH // ALL STAGES CLEAR!" : "STAGE CLEAR!");
-            GUI.Label(new Rect(cx - 225, cy - 112, 450, 44), header, _calloutStyle);
+                : (sm.IsAllStagesCleared ? "全ステージ完全クリア！！" : "ステージクリア！");
+            GUI.Label(new Rect(cx - 230, cy - 110, 460, 40), header, _calloutStyle);
 
             _titleStyle.normal.textColor = new Color(1f, 0.85f, 0.22f);
-            GUI.Label(new Rect(cx - 190, cy - 58, 380, 34), $"TIME: {sm.StageElapsed:00.00}s   |   RANK: {sm.LastRank}", _calloutStyle);
+            _titleStyle.alignment = TextAnchor.MiddleCenter;
+            GUI.Label(new Rect(cx - 190, cy - 58, 380, 32), $"タイム: {sm.StageElapsed:00.00}秒   |   ランク: {sm.LastRank}", _titleStyle);
+            _titleStyle.alignment = TextAnchor.UpperLeft;
 
             _centerStyle.normal.textColor = Color.white;
-            GUI.Label(new Rect(cx - 190, cy - 10, 380, 26), $"SLICES / KILLS: {sm.StageKills} (SESSION TOTAL {sm.TotalKills})", _centerStyle);
+            GUI.Label(new Rect(cx - 190, cy - 16, 380, 26), $"撃破数: {sm.StageKills} (合計 {sm.TotalKills})", _centerStyle);
 
-            GUI.color = new Color(0.15f, 0.95f, 1f);
-            string nextLabel = sm.ActiveMode == GameMode.Parkour && !sm.IsAllStagesCleared ? "NEXT STAGE [SPACE]" : "PLAY AGAIN [SPACE]";
-            if (GUI.Button(new Rect(cx - 210, cy + 44, 155, 44), nextLabel))
+            string nextLabel = sm.ActiveMode == GameMode.Parkour && !sm.IsAllStagesCleared ? "次のステージへ [Space]" : "もう一度遊ぶ [Space]";
+            if (DrawAccentButton(new Rect(cx - 220, cy + 44, 165, 44), nextLabel, new Color(0.16f, 0.95f, 1f)))
                 sm.AdvanceOrReplay();
 
-            GUI.color = new Color(1f, 0.28f, 0.72f);
-            if (GUI.Button(new Rect(cx - 45, cy + 44, 115, 44), "RETRY [R]"))
+            if (DrawAccentButton(new Rect(cx - 45, cy + 44, 115, 44), "リトライ [R]", new Color(1f, 0.28f, 0.72f)))
                 sm.RestartCurrentStage();
 
-            GUI.color = new Color(0.85f, 0.92f, 1f);
-            if (GUI.Button(new Rect(cx + 80, cy + 44, 130, 44), "MAIN MENU"))
+            if (DrawAccentButton(new Rect(cx + 80, cy + 44, 140, 44), "メインメニュー", Color.white))
                 sm.OpenMainMenu();
-
-            GUI.color = Color.white;
         }
     }
 }

@@ -58,12 +58,12 @@ namespace CyberRush
             CyberAudio.EnsureInstance();
             LanPvpManager.EnsureInstance();
 
-            foreach (var p in FindObjectsByType<CyberParkourController>(FindObjectsSortMode.None))
+            foreach (var p in FindObjectsByType<CyberParkourController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 if (p.playerId == 0) Player1 = p;
                 else if (p.playerId == 1) Player2 = p;
             }
-            _bots = FindObjectsByType<CyberBotAI>(FindObjectsSortMode.None);
+            _bots = FindObjectsByType<CyberBotAI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 
             var remote = FindFirstObjectByType<RemotePvpAvatar>(FindObjectsInactive.Include);
             if (remote != null && LanPvpManager.Instance != null)
@@ -158,12 +158,13 @@ namespace CyberRush
 
             if (Player1 != null)
             {
-                Vector3 bossApproach = new Vector3(240f, 3.0f, 44f);
+                // S3_BossArena は center.y=7.0, height=2.6 のため上面は y=8.3。余裕をもって y=9.5 に配置！
+                Vector3 bossApproach = new Vector3(240f, 9.5f, 43.5f);
                 Player1.ConfigureArenaFighter(true, bossApproach, Quaternion.identity);
                 Player1.RespawnAt(bossApproach, Quaternion.identity);
                 Player1.SetCursorLocked(true);
             }
-            CyberHUD.ShowCallout("BOSS RUSH // ARCHON CORE", new Color(1f, 0.22f, 0.72f));
+            CyberHUD.ShowCallout("BOSS RUSH // アルコンコア戦！", new Color(1f, 0.22f, 0.72f));
         }
 
         public void StartVsCpuArena()
@@ -186,7 +187,7 @@ namespace CyberRush
                 Player1.RespawnAt(arenaP1, Quaternion.identity);
                 Player1.SetCursorLocked(true);
             }
-            CyberHUD.ShowCallout("VS CPU ARENA // FIRST TO 8 KILLS", new Color(0.18f, 0.95f, 1f));
+            CyberHUD.ShowCallout("CPUアリーナ // 8キル先取バトル！", new Color(0.18f, 0.95f, 1f));
         }
 
         public void StartLocalPvp()
@@ -215,7 +216,7 @@ namespace CyberRush
                 Player2.ConfigureArenaFighter(true, p2Spawn, Quaternion.Euler(0f, 180f, 0f));
                 Player2.RespawnAt(p2Spawn, Quaternion.Euler(0f, 180f, 0f));
             }
-            CyberHUD.ShowCallout("LOCAL 2P PVP // FIRST TO 5 KILLS", new Color(1f, 0.25f, 0.72f));
+            CyberHUD.ShowCallout("ローカル2P対人戦 // 5キル先取！", new Color(1f, 0.25f, 0.72f));
         }
 
         public void StartLanPvp(bool host, string ip, int port)
@@ -302,8 +303,8 @@ namespace CyberRush
             if (enemy.kind == EnemyKind.ShieldPylon)
             {
                 int rem = RemainingBossPylons();
-                if (rem > 0) CyberHUD.ShowCallout($"PYLON SHATTERED! ({rem} LEFT)", new Color(0.2f, 0.95f, 1f));
-                else CyberHUD.ShowCallout("CORE SHIELD BROKEN! SLICE THE ARCHON!", new Color(1f, 0.25f, 0.72f));
+                if (rem > 0) CyberHUD.ShowCallout($"パイロン破壊！ 残り {rem} 基", new Color(0.2f, 0.95f, 1f));
+                else CyberHUD.ShowCallout("シールド解除！ ボス本体を攻撃しろ！", new Color(1f, 0.25f, 0.72f));
             }
             else if (enemy.kind == EnemyKind.CoreBoss)
             {
@@ -316,10 +317,10 @@ namespace CyberRush
             _arenaBotsKilledCount++;
             StageKills++;
             TotalKills++;
-            CyberHUD.ShowCallout($"{bot.botName} SLICED! ({_arenaBotsKilledCount}/{ArenaTargetKills})", new Color(0.15f, 0.96f, 1f));
+            CyberHUD.ShowCallout($"{bot.botName} 撃破！ ({_arenaBotsKilledCount}/{ArenaTargetKills})", new Color(0.15f, 0.96f, 1f));
             if (_arenaBotsKilledCount >= ArenaTargetKills && !IsOverlayOpen)
             {
-                ArenaWinnerText = "PLAYER 1 WINS VS CPU!";
+                ArenaWinnerText = "プレイヤーの勝利！（CPU撃破達成）";
                 LastRank = StageElapsed <= 45f ? "S" : "A";
                 IsOverlayOpen = true;
                 CyberAudio.Play("clear", 0.95f);
@@ -332,7 +333,7 @@ namespace CyberRush
             if (ActiveMode != GameMode.LocalPvp && ActiveMode != GameMode.LanPvp) return;
             if (scorer.ArenaKills >= ArenaTargetKills && !IsOverlayOpen)
             {
-                ArenaWinnerText = $"PLAYER {scorer.playerId + 1} VICTORY!";
+                ArenaWinnerText = $"PLAYER {scorer.playerId + 1} の勝利！";
                 LastRank = "WIN";
                 IsOverlayOpen = true;
                 CyberAudio.Play("clear", 0.95f);
@@ -351,7 +352,7 @@ namespace CyberRush
                 _bestTimes[CurrentStage] = StageElapsed;
 
             LastRank = StageElapsed <= cfg.sRankTime ? "S" : (StageElapsed <= cfg.aRankTime ? "A" : "B");
-            ArenaWinnerText = ActiveMode == GameMode.BossRush ? "ARCHON CORE DESTROYED!" : "";
+            ArenaWinnerText = ActiveMode == GameMode.BossRush ? "アルコンコア撃破！" : "";
             IsOverlayOpen = true;
             IsAllStagesCleared = (ActiveMode == GameMode.BossRush) || (CurrentStage >= stages.Count);
             Time.timeScale = 1f;

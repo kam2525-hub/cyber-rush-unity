@@ -44,6 +44,8 @@ namespace CyberRush
             CurrentHp = maxHp;
             transform.position = _spawnPos;
             transform.rotation = _spawnRot;
+            if (_player == null && StageManager.Instance != null && StageManager.Instance.Player1 != null)
+                _player = StageManager.Instance.Player1.transform;
             foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = true;
             foreach (var c in GetComponentsInChildren<Collider>(true)) c.enabled = true;
             _fireTimer = Random.Range(0.4f, fireInterval);
@@ -158,7 +160,7 @@ namespace CyberRush
             {
                 // Shielded feedback!
                 CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 2.2f, new Color(1f, 0.2f, 0.65f), 5.5f, 0.25f);
-                CyberHUD.ShowCallout("SHIELDED! DESTROY 3 PYLONS", new Color(1f, 0.35f, 0.6f));
+                CyberHUD.ShowCallout("シールド展開中！ パイロン3基を破壊せよ", new Color(1f, 0.35f, 0.6f));
                 return false;
             }
 

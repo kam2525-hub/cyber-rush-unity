@@ -16,9 +16,18 @@ namespace CyberRush
         private bool _isSwordWave;
         private float _life = 4.5f;
         private readonly HashSet<int> _hitIds = new HashSet<int>();
+        private bool _destroyed;
 
         public bool IsDeflected => _deflected;
         public int OwnerActorId => _ownerActorId;
+
+        private void Awake()
+        {
+            var rb = GetComponent<Rigidbody>();
+            if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
 
         public void Init(Vector3 dir, float speed, CyberEnemy owner)
         {
@@ -54,7 +63,7 @@ namespace CyberRush
         {
             if (_deflected || _isSwordWave) return;
             _deflected = true;
-            _speed = 40f;
+            _speed = 42f;
             _life = 3.0f;
             _ownerActorId = deflectorActorId;
             if (deflector != null) _ownerPlayer = deflector;
@@ -62,13 +71,9 @@ namespace CyberRush
             _enemyUnitDamage = 2;
 
             if (_ownerEnemy != null && !_ownerEnemy.IsDead)
-            {
                 _dir = (_ownerEnemy.transform.position + Vector3.up * 1.1f - transform.position).normalized;
-            }
             else
-            {
                 _dir = aimDir.normalized;
-            }
 
             var mr = GetComponent<MeshRenderer>();
             if (mr != null && mr.material != null)
@@ -82,16 +87,40 @@ namespace CyberRush
 
         private void Update()
         {
-            transform.position += _dir * (_speed * Time.deltaTime);
+            if (_destroyed) return;
+
+            float stepDist = _speed * Time.deltaTime;
+            if (stepDist > 0.001f)
+            {
+                float castRadius = _isSwordWave ? 0.85f : 0.30f;
+                var hits = Physics.SphereCastAll(transform.position, castRadius, _dir, stepDist, ~0, QueryTriggerInteraction.Collide);
+                if (hits.Length > 1)
+                    System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+                foreach (var h in hits)
+                {
+                    if (_destroyed) break;
+                    if (h.collider != null && h.collider.gameObject != gameObject)
+                        TryHitCollider(h.collider, h.point == Vector3.zero ? transform.position : h.point);
+                }
+            }
+
+            if (_destroyed) return;
+            transform.position += _dir * stepDist;
             _life -= Time.deltaTime;
-            if (_life <= 0f) Destroy(gameObject);
+            if (_life <= 0f) DestroySelf();
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other == null) return;
-            int iid = other.gameObject.GetInstanceID();
-            if (_isSwordWave && _hitIds.Contains(iid)) return;
+            if (!_destroyed && other != null)
+                TryHitCollider(other, transform.position);
+        }
+
+        private void TryHitCollider(Collider other, Vector3 hitPos)
+        {
+            if (_destroyed || other == null) return;
+            if (other.GetComponent<CyberProjectile>() != null) return;
 
             bool fromPlayerOrDeflected = _deflected || _ownerActorId >= 0;
 
@@ -100,13 +129,16 @@ namespace CyberRush
             if (enemy != null)
             {
                 if (_ownerActorId == -1 && !_deflected) return;
-                if (!enemy.IsDead && fromPlayerOrDeflected)
+                if (!enemy.IsDead && fromPlayerOrDeflected && _hitIds.Add(enemy.gameObject.GetInstanceID()))
                 {
-                    _hitIds.Add(enemy.gameObject.GetInstanceID());
                     CyberParkourController credit = _ownerPlayer != null ? _ownerPlayer : FindFirstObjectByType<CyberParkourController>();
-                    enemy.TakeSliceDamage(credit, _enemyUnitDamage);
-                    CyberAudio.Play("hit", 0.7f);
-                    if (!_isSwordWave) Destroy(gameObject);
+                    if (enemy.TakeSliceDamage(credit, _enemyUnitDamage))
+                    {
+                        CyberHUD.TriggerHitmarker("HIT!", new Color(0.2f, 0.98f, 1f));
+                    }
+                    CyberVFX.SpawnShatterExplosion(enemy, hitPos, new Color(0.2f, 0.95f, 1f), 4);
+                    CyberAudio.Play("hit", 0.72f);
+                    if (!_isSwordWave) DestroySelf();
                 }
                 return;
             }
@@ -116,49 +148,62 @@ namespace CyberRush
             if (bot != null)
             {
                 if (bot.BotActorId == _ownerActorId) return;
-                if (!bot.IsDead)
+                if (!bot.IsDead && _hitIds.Add(bot.gameObject.GetInstanceID()))
                 {
-                    _hitIds.Add(bot.gameObject.GetInstanceID());
                     bot.TakeCombatDamage(_arenaDamage, _ownerPlayer, _ownerActorId);
+                    if (_ownerActorId >= 0)
+                        CyberHUD.TriggerHitmarker($"HIT -{ _arenaDamage }", new Color(0.2f, 0.98f, 1f));
                     CyberAudio.Play("hit", 0.75f);
-                    if (!_isSwordWave) Destroy(gameObject);
+                    if (!_isSwordWave) DestroySelf();
                 }
                 return;
             }
 
-            // 3. Hit Remote LAN PvP Avatar (send damage packet via LanPvpManager)
+            // 3. Hit Remote LAN PvP Avatar
             var remote = other.GetComponentInParent<RemotePvpAvatar>();
             if (remote != null)
             {
                 if (_ownerActorId == 99) return;
-                _hitIds.Add(remote.gameObject.GetInstanceID());
-                if (LanPvpManager.Instance != null)
+                if (_hitIds.Add(remote.gameObject.GetInstanceID()))
                 {
-                    LanPvpManager.Instance.QueueOutgoingDamage(_arenaDamage);
-                    CyberAudio.Play("hit", 0.8f);
-                    CyberHUD.TriggerHitmarker($"HIT -{_arenaDamage}", new Color(0.18f, 0.95f, 1f));
+                    if (LanPvpManager.Instance != null)
+                    {
+                        LanPvpManager.Instance.QueueOutgoingDamage(_arenaDamage);
+                        CyberAudio.Play("hit", 0.8f);
+                        CyberHUD.TriggerHitmarker($"HIT -{_arenaDamage}", new Color(0.18f, 0.95f, 1f));
+                    }
+                    if (!_isSwordWave) DestroySelf();
                 }
-                if (!_isSwordWave) Destroy(gameObject);
                 return;
             }
 
-            // 4. Hit Players (including Opposing Split-Screen Player!)
+            // 4. Hit Players
             var pc = other.GetComponentInParent<CyberParkourController>();
             if (pc != null)
             {
-                if (pc.playerId == _ownerActorId) return; // Don't hit self!
-                _hitIds.Add(pc.gameObject.GetInstanceID());
-                pc.TakeCombatDamage(_arenaDamage, _ownerPlayer);
-                if (!_isSwordWave) Destroy(gameObject);
+                if (pc.playerId == _ownerActorId) return;
+                if (_hitIds.Add(pc.gameObject.GetInstanceID()))
+                {
+                    pc.TakeCombatDamage(_arenaDamage, _ownerPlayer);
+                    if (_ownerActorId >= 0)
+                        CyberHUD.TriggerHitmarker($"HIT P{pc.playerId + 1} -{_arenaDamage}", new Color(1f, 0.25f, 0.72f));
+                    if (!_isSwordWave) DestroySelf();
+                }
                 return;
             }
 
             // 5. Hit Arena/Stage World Geometry
             if (!other.isTrigger)
             {
-                if (!_isSwordWave)
-                    Destroy(gameObject);
+                if (!_isSwordWave) DestroySelf();
             }
+        }
+
+        private void DestroySelf()
+        {
+            if (_destroyed) return;
+            _destroyed = true;
+            Destroy(gameObject);
         }
     }
 }

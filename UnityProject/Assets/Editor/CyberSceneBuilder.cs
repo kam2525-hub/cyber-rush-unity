@@ -357,7 +357,7 @@ namespace CyberRush.Editor
 
             // Massive Archon Spire Arena
             CreateBlock("S3_BossArena", new Vector3(ox, 7.0f, 58f), new Vector3(34f, 2.6f, 34f), _gridMagenta);
-            SpawnCyberEnemy("Assets/Models/Cyber_CoreBoss.fbx", "S3_ArchonCoreBoss", 3, EnemyKind.CoreBoss, new Vector3(ox, 8.8f, 60f), Quaternion.Euler(0, 180f, 0), hp: 3);
+            SpawnCyberEnemy("Assets/Models/Cyber_CoreBoss.fbx", "S3_ArchonCoreBoss", 3, EnemyKind.CoreBoss, new Vector3(ox, 8.8f, 60f), Quaternion.Euler(0, 180f, 0), hp: 8);
 
             // 3 Shield Pylons mounted around elevated flanks
             Vector3[] pylonPlatforms =
@@ -419,8 +419,8 @@ namespace CyberRush.Editor
             SpawnGrapple(new Vector3(ox + 11f, 10.5f, 0f));
 
             // Spawn 2 AI Cyber Ninja Bots for VS CPU Arena
-            SpawnArenaBot("Arena_Bot_Alpha", 0, "CYBER NINJA ALPHA", new Vector3(ox - 10f, 1.5f, 18f), new Color(1.0f, 0.22f, 0.72f));
-            SpawnArenaBot("Arena_Bot_Viper", 1, "CYBER NINJA VIPER", new Vector3(ox + 10f, 1.5f, 18f), new Color(1.0f, 0.58f, 0.14f));
+            SpawnArenaBot("Arena_Bot_Alpha", 0, "CYBER NINJA ALPHA", new Vector3(ox - 8f, 2.2f, 14f), new Color(1.0f, 0.22f, 0.72f));
+            SpawnArenaBot("Arena_Bot_Viper", 1, "CYBER NINJA VIPER", new Vector3(ox + 8f, 2.2f, 14f), new Color(1.0f, 0.58f, 0.14f));
 
             // Spawn Remote LAN PvP Opponent Avatar
             var botPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Cyber_NinjaBot.fbx");
