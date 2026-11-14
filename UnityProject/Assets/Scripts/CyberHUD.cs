@@ -22,8 +22,6 @@ namespace CyberRush
         private GUIStyle _panelStyle;
         private GUIStyle _cardStyle;
 
-        private string _lanIp = "127.0.0.1";
-        private string _lanPortStr = "7777";
         private bool _showControlsHelp = false;
 
         private static string _calloutMsg = "";
@@ -200,7 +198,7 @@ namespace CyberRush
             float cx = Screen.width * 0.5f;
             float cy = Screen.height * 0.5f;
             float panelW = 640f;
-            float panelH = _showControlsHelp ? 590f : 510f;
+            float panelH = _showControlsHelp ? 585f : 500f;
             Rect panelRect = new Rect(cx - panelW * 0.5f, cy - panelH * 0.5f, panelW, panelH);
 
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
@@ -209,66 +207,63 @@ namespace CyberRush
             float y = panelRect.y + 20f;
             _headerStyle.normal.textColor = new Color(0.22f, 0.96f, 1f);
             GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 44), "CYBER RUSH // サイバー剣戟×銃撃", _headerStyle);
-            y += 44f;
+            y += 42f;
 
             _subHeaderStyle.normal.textColor = new Color(0.80f, 0.88f, 0.98f);
-            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "一人称パルクール ・ 各種剣技 ・ ブラスター＆レールガン ・ CPU戦・対人戦", _subHeaderStyle);
+            GUI.Label(new Rect(panelRect.x + 20, y, panelW - 40, 22), "一人称パルクール ・ 撃破スローモーション連撃 ・ カタナ＆銃アクション", _subHeaderStyle);
             y += 34f;
 
-            float bw = 480f;
+            float bw = 520f;
             float bx = cx - bw * 0.5f;
 
-            if (DrawAccentButton(new Rect(bx, y, bw, 44), "1. 通常ステージ (STAGE 1〜3 攻略)", new Color(0.16f, 0.95f, 1f)))
+            if (DrawAccentButton(new Rect(bx, y, bw, 46), "ステージ攻略スタート (STAGE 1 から通しプレイ)", new Color(0.16f, 0.95f, 1f)))
                 sm.StartParkour(1);
-            y += 52f;
-
-            if (DrawAccentButton(new Rect(bx, y, bw, 44), "2. ボスラッシュ (巨大アルコンコア決戦)", new Color(1f, 0.78f, 0.22f)))
-                sm.StartBossRush();
-            y += 52f;
-
-            if (DrawAccentButton(new Rect(bx, y, bw, 44), "3. CPU対戦アリーナ (vs AI忍者2体・8キル先取)", new Color(0.25f, 0.98f, 0.65f)))
-                sm.StartVsCpuArena();
-            y += 52f;
-
-            if (DrawAccentButton(new Rect(bx, y, bw, 44), "4. オフライン2P対人戦 (1台のPCで画面分割・5キル先取)", new Color(1f, 0.30f, 0.75f)))
-                sm.StartLocalPvp();
             y += 56f;
 
-            // LAN / IP Row
-            Rect lanBox = new Rect(bx, y, bw, 62);
-            GUI.Box(lanBox, GUIContent.none, _cardStyle);
-            DrawOutlineBox(lanBox, new Color(0.35f, 0.55f, 0.85f, 0.7f), 1f);
-            GUI.Label(new Rect(bx + 12, y + 6, 200, 20), "5. LAN / IP 通信対人戦", _labelStyle);
-            _lanIp = GUI.TextField(new Rect(bx + 12, y + 29, 150, 24), _lanIp);
-            _lanPortStr = GUI.TextField(new Rect(bx + 170, y + 29, 62, 24), _lanPortStr);
-            int port = int.TryParse(_lanPortStr, out int p) ? p : 7777;
+            // Direct Stage Select Card (Stages 1 - 5)
+            Rect listBox = new Rect(bx, y, bw, 198f);
+            GUI.Box(listBox, GUIContent.none, _cardStyle);
+            DrawOutlineBox(listBox, new Color(0.32f, 0.55f, 0.88f, 0.65f), 1f);
+            GUI.Label(new Rect(bx + 14, y + 6, 300, 22), "ステージ選択 (クリックで直接プレイ)", _labelStyle);
 
-            if (DrawAccentButton(new Rect(bx + 244, y + 16, 108, 36), "ホスト作成", new Color(0.18f, 0.95f, 1f)))
-                sm.StartLanPvp(true, _lanIp, port);
-            if (DrawAccentButton(new Rect(bx + 360, y + 16, 108, 36), "IP参加", new Color(1f, 0.58f, 0.22f)))
-                sm.StartLanPvp(false, _lanIp, port);
-            y += 74f;
+            float halfW = (bw - 36f) * 0.5f;
+            if (DrawAccentButton(new Rect(bx + 12, y + 32, halfW, 38), "STAGE 1: スカイライン", new Color(0.18f, 0.92f, 1f)))
+                sm.StartParkour(1);
+            if (DrawAccentButton(new Rect(bx + 24 + halfW, y + 32, halfW, 38), "STAGE 2: キャニオン", new Color(0.18f, 0.92f, 1f)))
+                sm.StartParkour(2);
+
+            if (DrawAccentButton(new Rect(bx + 12, y + 78, halfW, 38), "STAGE 3: アルコン尖塔 (BOSS)", new Color(1f, 0.35f, 0.78f)))
+                sm.StartParkour(3);
+            if (DrawAccentButton(new Rect(bx + 24 + halfW, y + 78, halfW, 38), "STAGE 4: キルチェイン回廊 [新]", new Color(0.25f, 0.98f, 0.65f)))
+                sm.StartParkour(4);
+
+            if (DrawAccentButton(new Rect(bx + 12, y + 124, bw - 24f, 44), "STAGE 5: スカイフォートレス決戦 [新・大量撃破＆ボス]", new Color(1f, 0.82f, 0.22f)))
+                sm.StartParkour(5);
+            y += 208f;
+
+            if (DrawAccentButton(new Rect(bx, y, bw, 42), "BOSS RUSH // アルコンコア直接対決", new Color(1f, 0.24f, 0.68f)))
+                sm.StartBossRush();
+            y += 52f;
 
             // Bottom Footer Buttons
             bool muted = CyberAudio.Instance != null && CyberAudio.Instance.IsMuted;
             string muteLabel = muted ? "音声: ミュート中 [M]" : "音声: ON [M]";
-            if (DrawAccentButton(new Rect(bx, y, 232, 36), muteLabel, muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f)))
+            if (DrawAccentButton(new Rect(bx, y, halfW, 36), muteLabel, muted ? new Color(1f, 0.3f, 0.35f) : new Color(0.2f, 0.95f, 1f)))
                 CyberAudio.Instance?.ToggleMute();
 
             string helpLabel = _showControlsHelp ? "操作ガイドを閉じる ▲" : "操作ガイドを見る ▼";
-            if (DrawAccentButton(new Rect(bx + 248, y, 232, 36), helpLabel, new Color(0.75f, 0.85f, 1f)))
+            if (DrawAccentButton(new Rect(bx + 12 + halfW, y, halfW, 36), helpLabel, new Color(0.75f, 0.85f, 1f)))
                 _showControlsHelp = !_showControlsHelp;
             y += 46f;
 
             if (_showControlsHelp)
             {
-                Rect helpRect = new Rect(bx, y, bw, 92);
+                Rect helpRect = new Rect(bx, y, bw, 76);
                 GUI.Box(helpRect, GUIContent.none, _cardStyle);
-                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 82),
-                    "【基本】WASD:移動 | Space:ジャンプ/壁走り | Shift/右クリ:ダッシュ/スロー | E:ワイヤー\n" +
-                    "【武器】[1]カタナ [2]銃 (ホイール切替) | [G]クイック銃撃 | [C]スライディング/空中急降下斬\n" +
-                    "【技】左クリ:通常斬撃・弾き/射撃 | [Q]斬撃波/レールガン | [F]旋風斬/拡散弾 | [M]音ON/OFF\n" +
-                    "【2P対戦】移動:矢印 | 視点:IJKL | Jump:Enter | 攻撃:U | 技:O/P | 切替:右Ctrl | ダッシュ:/",
+                GUI.Label(new Rect(bx + 12, y + 6, bw - 24, 66),
+                    "【移動】WASD:移動 | Space:ジャンプ/壁走り | Shift/右クリ:ダッシュ/スローモ | E:ワイヤー\n" +
+                    "【武器】[1]カタナ [2]サイバー銃 (ホイール切替) | [G]クイック銃撃 | [C]スライディング/空中急降下斬\n" +
+                    "【技】左クリ:通常斬撃・弾き/射撃 | [Q]斬撃波/レールガン | [F]旋風斬/拡散ショット | [M]消音",
                     _smallLabelStyle);
             }
         }
@@ -308,7 +303,7 @@ namespace CyberRush
                     GUI.color = Color.white;
                 }
             }
-            else if (sm.ActiveMode == GameMode.BossRush || (sm.ActiveMode == GameMode.Parkour && sm.CurrentStage == 3))
+            else if (sm.ActiveMode == GameMode.BossRush || (sm.ActiveMode == GameMode.Parkour && (sm.CurrentStage == 3 || sm.CurrentStage == 5)))
             {
                 foreach (var en in FindObjectsByType<CyberEnemy>(FindObjectsSortMode.None))
                 {
@@ -343,12 +338,8 @@ namespace CyberRush
 
             _titleStyle.normal.textColor = new Color(0.22f, 0.95f, 1f);
             string titleText = sm.ActiveMode == GameMode.Parkour
-                ? $"ステージ {sm.CurrentStage} / 3"
-                : (sm.ActiveMode == GameMode.BossRush
-                    ? "ボスラッシュ // アルコンコア戦"
-                    : (sm.ActiveMode == GameMode.VsCpuArena
-                        ? "CPUアリーナ (vs AI忍者2体)"
-                        : (sm.ActiveMode == GameMode.LocalPvp ? "オフライン2P対人戦" : "LAN通信対人戦")));
+                ? $"ステージ {sm.CurrentStage} / {sm.stages.Count}"
+                : "ボスラッシュ // アルコンコア戦";
             GUI.Label(new Rect(24, 18, 272, 24), titleText, _titleStyle);
 
             _bigTimerStyle.normal.textColor = new Color(1f, 0.86f, 0.25f);
@@ -356,7 +347,7 @@ namespace CyberRush
             GUI.Label(new Rect(150, 50, 145, 24), $"撃破:{sm.StageKills}  [ESC]メニュー", _smallLabelStyle);
 
             // Top-Center Objectives
-            if ((sm.ActiveMode == GameMode.Parkour && sm.CurrentStage == 3) || sm.ActiveMode == GameMode.BossRush)
+            if ((sm.ActiveMode == GameMode.Parkour && (sm.CurrentStage == 3 || sm.CurrentStage == 5)) || sm.ActiveMode == GameMode.BossRush)
             {
                 int rem = sm.RemainingBossPylons();
                 Rect objRect = new Rect(cx - 210f, 14, 420, 40);
@@ -365,7 +356,7 @@ namespace CyberRush
                 DrawOutlineBox(objRect, border, 1.5f);
                 _centerStyle.normal.textColor = border;
                 string bossHint = rem > 0
-                    ? $"ボスのシールド装置（パイロン）を破壊せよ！ ({3 - rem}/3)"
+                    ? $"ボスのシールド装置（パイロン）を破壊せよ！ (残り {rem} 基)"
                     : "シールド解除！ ボス本体（アルコンコア）を撃破せよ！";
                 GUI.Label(new Rect(cx - 205f, 20, 410, 28), bossHint, _centerStyle);
             }
@@ -404,17 +395,20 @@ namespace CyberRush
             float cx = vr.x + vr.width * 0.5f;
             float cy = vr.y + vr.height * 0.5f;
 
-            // Speedlines / Damage / Slow-Mo Edge Flash
-            if (p.DamageFlashActive || p.HorizontalSpeed > 16.5f || p.IsSlowMo)
+            // Speedlines / Damage / Kill Slow-Mo Edge Flash
+            if (p.DamageFlashActive || CyberVFX.IsKillSlowMoActive || p.HorizontalSpeed > 16.5f || p.IsSlowMo)
             {
                 Color edgeCol = p.DamageFlashActive
                     ? new Color(1f, 0.12f, 0.18f, 0.42f)
-                    : (p.IsSlowMo ? new Color(1f, 0.16f, 0.72f, 0.25f) : new Color(0.12f, 0.95f, 1.0f, 0.14f));
+                    : (CyberVFX.IsKillSlowMoActive
+                        ? new Color(1f, 0.85f, 0.22f, 0.36f)
+                        : (p.IsSlowMo ? new Color(1f, 0.16f, 0.72f, 0.25f) : new Color(0.12f, 0.95f, 1.0f, 0.14f)));
+                int borderW = CyberVFX.IsKillSlowMoActive ? 8 : 5;
                 GUI.color = edgeCol;
-                GUI.DrawTexture(new Rect(vr.x, vr.y, vr.width, 5), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(vr.x, vr.yMax - 5, vr.width, 5), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(vr.x, vr.y, 5, vr.height), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(vr.xMax - 5, vr.y, 5, vr.height), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(vr.x, vr.y, vr.width, borderW), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(vr.x, vr.yMax - borderW, vr.width, borderW), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(vr.x, vr.y, borderW, vr.height), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(vr.xMax - borderW, vr.y, borderW, vr.height), Texture2D.whiteTexture);
                 GUI.color = Color.white;
             }
 

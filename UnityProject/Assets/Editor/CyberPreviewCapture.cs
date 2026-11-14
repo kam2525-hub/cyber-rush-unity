@@ -39,13 +39,11 @@ namespace CyberRush.Editor
             // 4. Stage 3 Archon Spire Boss Arena
             CaptureFrom(new Vector3(222f, 24f, 34f), new Vector3(240f, 10f, 60f), Path.Combine(outDir, "cyber_stage3_boss_preview.png"));
 
-            // 5. Cyber Combat Arena Overview (Bots temporarily visible for preview)
-            var arenaBots = Object.FindObjectsByType<CyberBotAI>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            foreach (var bot in arenaBots)
-                bot.gameObject.SetActive(true);
-            CaptureFrom(new Vector3(336f, 20f, -24f), new Vector3(360f, 3f, 4f), Path.Combine(outDir, "cyber_arena_preview.png"));
-            foreach (var bot in arenaBots)
-                bot.gameObject.SetActive(false);
+            // 5. Stage 4 Kill-Chain Gauntlet Overview
+            CaptureFrom(new Vector3(460f, 22f, 24f), new Vector3(480f, 7f, 68f), Path.Combine(outDir, "cyber_stage4_preview.png"));
+
+            // 6. Stage 5 Sky Fortress Citadel Overview
+            CaptureFrom(new Vector3(578f, 28f, 64f), new Vector3(600f, 13f, 108f), Path.Combine(outDir, "cyber_stage5_preview.png"));
         }
 
         private static void CaptureFrom(Vector3 pos, Vector3 lookAt, string outPath)

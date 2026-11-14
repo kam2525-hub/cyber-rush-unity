@@ -71,9 +71,11 @@ namespace CyberRush
 
             if (stages.Count == 0)
             {
-                stages.Add(new StageConfig { stageName = "STAGE 1 // NEON SKYLINE", spawnPosition = new Vector3(0f, 2.0f, 0f), sRankTime = 18f, aRankTime = 28f });
-                stages.Add(new StageConfig { stageName = "STAGE 2 // CYBER CANYON", spawnPosition = new Vector3(120f, 2.0f, 0f), sRankTime = 22f, aRankTime = 34f });
-                stages.Add(new StageConfig { stageName = "STAGE 3 // ARCHON SPIRE", spawnPosition = new Vector3(240f, 2.0f, 0f), sRankTime = 28f, aRankTime = 42f });
+                stages.Add(new StageConfig { stageName = "STAGE 1 // ネオンスカイライン", spawnPosition = new Vector3(0f, 2.0f, 0f), sRankTime = 18f, aRankTime = 28f });
+                stages.Add(new StageConfig { stageName = "STAGE 2 // サイバーキャニオン", spawnPosition = new Vector3(120f, 2.0f, 0f), sRankTime = 22f, aRankTime = 34f });
+                stages.Add(new StageConfig { stageName = "STAGE 3 // アルコン尖塔", spawnPosition = new Vector3(240f, 2.0f, 0f), sRankTime = 28f, aRankTime = 42f });
+                stages.Add(new StageConfig { stageName = "STAGE 4 // キルチェイン回廊", spawnPosition = new Vector3(480f, 2.0f, 0f), sRankTime = 26f, aRankTime = 40f });
+                stages.Add(new StageConfig { stageName = "STAGE 5 // スカイフォートレス", spawnPosition = new Vector3(600f, 2.0f, 0f), sRankTime = 36f, aRankTime = 55f });
             }
 
             OpenMainMenu();
@@ -125,7 +127,7 @@ namespace CyberRush
             ActiveMode = GameMode.MainMenu;
             IsOverlayOpen = false;
             IsAllStagesCleared = false;
-            Time.timeScale = 1f;
+            CyberVFX.ResetTimeScale();
             CleanupProjectilesAndToggleArenaActors(enableBots: false, enableP2: false, enableRemote: false);
 
             if (Player1 != null)
@@ -253,6 +255,7 @@ namespace CyberRush
             StageKills = 0;
             IsOverlayOpen = false;
             IsAllStagesCleared = false;
+            CyberVFX.ResetTimeScale();
 
             foreach (var p in FindObjectsByType<CyberProjectile>(FindObjectsSortMode.None))
                 Destroy(p.gameObject);
@@ -355,7 +358,7 @@ namespace CyberRush
             ArenaWinnerText = ActiveMode == GameMode.BossRush ? "アルコンコア撃破！" : "";
             IsOverlayOpen = true;
             IsAllStagesCleared = (ActiveMode == GameMode.BossRush) || (CurrentStage >= stages.Count);
-            Time.timeScale = 1f;
+            CyberVFX.ResetTimeScale();
             CyberAudio.Play("clear", 0.95f);
             if (Player1 != null) Player1.SetCursorLocked(false);
         }

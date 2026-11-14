@@ -127,6 +127,8 @@ namespace CyberRush
         clips["hit"] = MakeHitClangClip("SFX_HitClang", 0.16f);
         clips["deflect"] = MakeDeflectClip("SFX_Deflect", 0.24f);
         clips["explosion"] = MakeExplosionClip("SFX_Explosion", 0.48f, 140f, 32f, 0.85f);
+        clips["kill_deluxe"] = MakeDeluxeKillClip("SFX_KillDeluxe", 0.62f, isBoss: false);
+        clips["boss_kill"] = MakeDeluxeKillClip("SFX_BossKill", 1.15f, isBoss: true);
         clips["dash"] = MakeSweepNoiseClip("SFX_Dash", 0.18f, 2100f, 550f, 0.78f, 0.32f);
         clips["jumppad"] = MakeJumpPadClip("SFX_JumpPad", 0.32f);
         clips["damage"] = MakeSweepNoiseClip("SFX_Damage", 0.24f, 180f, 65f, 0.65f, 0.72f);
@@ -335,6 +337,51 @@ namespace CyberRush
             float f = notes[idx];
             float s = Mathf.Sin(sec * 6.28318f * f) * 0.55f + Mathf.Sin(sec * 6.28318f * f * 2f) * 0.25f;
             d[i] = Mathf.Clamp(s * env * 0.72f, -1f, 1f);
+        }
+        return CreateClip(name, d);
+    }
+
+    private static AudioClip MakeDeluxeKillClip(string name, float dur, bool isBoss)
+    {
+        int n = Mathf.RoundToInt(dur * SampleRate);
+        float[] d = new float[n];
+        float pSub = 0f;
+        float pSweep = 0f;
+        float lpNoise = 0f;
+        float prevN = 0f;
+
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)n;
+            float sec = i / (float)SampleRate;
+
+            // 1. Sub-Bass Impact Drop (heavy stylish slowdown boom)
+            pSub += Mathf.Lerp(isBoss ? 145f : 175f, 32f, Mathf.Pow(t, 0.28f)) / SampleRate;
+            float subEnv = Mathf.Exp(-t * (isBoss ? 3.5f : 5.5f));
+            float subBoom = Mathf.Sin(pSub * 6.28318f) * subEnv * 0.72f;
+
+            // 2. Time-Warp Reverse-to-Drop Synth Swell
+            pSweep += Mathf.Lerp(540f, 110f, Mathf.Pow(t, 0.45f)) / SampleRate;
+            float warpEnv = Mathf.Min(1f, t * 40f) * Mathf.Exp(-t * 4.2f);
+            float timeWarp = ((pSweep - Mathf.Floor(pSweep)) * 2f - 1f) * warpEnv * 0.24f;
+
+            // 3. Luxurious Crystalline Neon Chime Chord (A5 + E6 + A6 + B6 shimmer)
+            float chimeEnv = Mathf.Min(1f, t * 55f) * Mathf.Pow(1f - t, isBoss ? 1.15f : 1.5f);
+            float chime = Mathf.Sin(sec * 6.28318f * 880f) * 0.28f
+                        + Mathf.Sin(sec * 6.28318f * 1318.5f) * 0.22f
+                        + Mathf.Sin(sec * 6.28318f * 1760f) * 0.16f
+                        + Mathf.Sin(sec * 6.28318f * 1975.5f) * (0.10f * Mathf.Sin(t * 24f));
+
+            // 4. Glass / Digital Armor Shatter Sparkles
+            float rawN = HashNoise(i * 7 + 31);
+            float hpN = rawN - prevN * 0.8f;
+            prevN = rawN;
+            lpNoise = Mathf.Lerp(lpNoise, hpN, 0.55f);
+            float shatterEnv = Mathf.Exp(-t * 9.5f);
+            float shimmer = lpNoise * shatterEnv * 0.36f;
+
+            float mix = subBoom + timeWarp + chime * chimeEnv + shimmer;
+            d[i] = Mathf.Clamp((float)Math.Tanh(mix * 1.45f) * 0.92f, -1f, 1f);
         }
         return CreateClip(name, d);
     }

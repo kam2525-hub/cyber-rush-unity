@@ -14,12 +14,34 @@ namespace CyberRush
             ?? Shader.Find("Standard");
 
         private static Coroutine _hitStopRoutine;
+        private static MonoBehaviour _hitStopHost;
+        public static bool IsKillSlowMoActive { get; private set; }
+
+        public static void ResetTimeScale()
+        {
+            if (_hitStopHost != null && _hitStopRoutine != null)
+                _hitStopHost.StopCoroutine(_hitStopRoutine);
+            _hitStopRoutine = null;
+            IsKillSlowMoActive = false;
+            Time.timeScale = 1f;
+        }
 
         public static void TriggerHitStop(MonoBehaviour host, float duration = 0.045f, float scale = 0.08f)
         {
-            if (host == null) return;
-            if (_hitStopRoutine != null) host.StopCoroutine(_hitStopRoutine);
-            _hitStopRoutine = host.StartCoroutine(HitStopCoroutine(duration, scale));
+            MonoBehaviour runner = StageManager.Instance != null ? (MonoBehaviour)StageManager.Instance : host;
+            if (runner == null || !runner.isActiveAndEnabled) return;
+            if (_hitStopHost != null && _hitStopRoutine != null) _hitStopHost.StopCoroutine(_hitStopRoutine);
+            _hitStopHost = runner;
+            _hitStopRoutine = runner.StartCoroutine(HitStopCoroutine(duration, scale));
+        }
+
+        public static void TriggerStylishKillSlowMo(bool isBoss = false)
+        {
+            MonoBehaviour runner = StageManager.Instance;
+            if (runner == null || !runner.isActiveAndEnabled) return;
+            if (_hitStopHost != null && _hitStopRoutine != null) _hitStopHost.StopCoroutine(_hitStopRoutine);
+            _hitStopHost = runner;
+            _hitStopRoutine = runner.StartCoroutine(KillSlowMoCoroutine(isBoss));
         }
 
         private static IEnumerator HitStopCoroutine(float dur, float scale)
@@ -27,9 +49,32 @@ namespace CyberRush
             float prev = Time.timeScale;
             Time.timeScale = scale;
             yield return new WaitForSecondsRealtime(dur);
-            // Only restore normal flow if slow-mo isn't currently overriding
             if (Mathf.Approximately(Time.timeScale, scale))
                 Time.timeScale = prev > 0.4f ? 1f : prev;
+            _hitStopRoutine = null;
+        }
+
+        private static IEnumerator KillSlowMoCoroutine(bool isBoss)
+        {
+            IsKillSlowMoActive = true;
+            Time.timeScale = isBoss ? 0.05f : 0.08f;
+            yield return new WaitForSecondsRealtime(isBoss ? 0.09f : 0.048f);
+
+            float rampDur = isBoss ? 0.72f : 0.40f;
+            float elapsed = 0f;
+            float startScale = isBoss ? 0.16f : 0.22f;
+            while (elapsed < rampDur)
+            {
+                if (StageManager.Instance != null && (StageManager.Instance.IsMenuOpen || StageManager.Instance.IsOverlayOpen))
+                    break;
+                elapsed += Time.unscaledDeltaTime;
+                float u = Mathf.Clamp01(elapsed / rampDur);
+                Time.timeScale = Mathf.Lerp(startScale, 1f, u * u * (3f - 2f * u));
+                yield return null;
+            }
+
+            Time.timeScale = 1f;
+            IsKillSlowMoActive = false;
             _hitStopRoutine = null;
         }
 

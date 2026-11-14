@@ -45,10 +45,12 @@ namespace CyberRush.Editor
             var p2 = BuildPlayerRig("CyberPlayer2", 1, new Vector3(360f, 2.2f, 20f), Quaternion.Euler(0f, 180f, 0f), false, selfBodyLayer: 9);
             p2.SetActive(false);
 
-            // 2. Build 3 High-Speed Parkour Courses + Combat Arena (x = 360)
+            // 2. Build 5 High-Speed Parkour & Slow-Mo Action Stages
             BuildStage1(0f);
             BuildStage2(120f);
             BuildStage3(240f);
+            BuildStage4(480f);
+            BuildStage5(600f);
             BuildBattleArena(360f);
             BuildNeonSkylineBackdrop();
 
@@ -380,6 +382,84 @@ namespace CyberRush.Editor
         }
 
         // =====================================================================
+        // STAGE 4: KILL-CHAIN GAUNTLET (HIGH-DENSITY SLOW-MO TAKEDOWN CORRIDOR)
+        // =====================================================================
+        private static void BuildStage4(float ox)
+        {
+            // Entry Deck + First Combo Pair
+            CreateBlock("S4_Start", new Vector3(ox, 0f, 6f), new Vector3(11f, 2f, 20f), _gridCyan);
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_Trooper_1", 4, EnemyKind.Trooper, new Vector3(ox - 2.5f, 1.0f, 11f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_Trooper_2", 4, EnemyKind.Trooper, new Vector3(ox + 2.5f, 1.0f, 14f), Quaternion.Euler(0, 180f, 0));
+            SpawnJumpPad(new Vector3(ox, 1.05f, 15.5f), 17.5f);
+
+            // Aerial Wall-Run Gallery with 4 Hovering Drones for Mid-Air Slow-Mo Chains
+            CreateBlock("S4_WallL1", new Vector3(ox - 6.0f, 6.5f, 34f), new Vector3(1.2f, 9f, 26f), _gridMagenta, isWallRun: true);
+            CreateBlock("S4_WallR1", new Vector3(ox + 6.0f, 6.5f, 50f), new Vector3(1.2f, 9f, 26f), _gridMagenta, isWallRun: true);
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_1", 4, EnemyKind.Drone, new Vector3(ox - 2.2f, 7.2f, 27f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_2", 4, EnemyKind.Drone, new Vector3(ox + 2.2f, 7.8f, 36f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_3", 4, EnemyKind.Drone, new Vector3(ox - 1.5f, 8.2f, 46f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_4", 4, EnemyKind.Drone, new Vector3(ox + 1.8f, 8.5f, 56f), Quaternion.Euler(0, 180f, 0));
+
+            // Mid Gauntlet Plaza: 3 Troopers + 2 Flanking Drones (Ideal for Cyclone Spin & Sword Wave!)
+            CreateBlock("S4_MidPlaza", new Vector3(ox, 5.5f, 76f), new Vector3(18f, 2f, 26f), _gridCyan);
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_Trooper_3", 4, EnemyKind.Trooper, new Vector3(ox - 4.5f, 6.5f, 72f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_Trooper_4", 4, EnemyKind.Trooper, new Vector3(ox, 6.5f, 77f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_Trooper_5", 4, EnemyKind.Trooper, new Vector3(ox + 4.5f, 6.5f, 82f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_5", 4, EnemyKind.Drone, new Vector3(ox - 6.0f, 9.2f, 76f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_6", 4, EnemyKind.Drone, new Vector3(ox + 6.0f, 9.2f, 80f), Quaternion.Euler(0, 180f, 0));
+
+            // Grapple Strike Stretch -> Apex Goal
+            SpawnGrapple(new Vector3(ox, 13.0f, 100f));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S4_Drone_7", 4, EnemyKind.Drone, new Vector3(ox, 11.2f, 111f), Quaternion.Euler(0, 180f, 0));
+            SpawnGrapple(new Vector3(ox, 14.5f, 122f));
+
+            CreateBlock("S4_GoalRoof", new Vector3(ox, 9.0f, 140f), new Vector3(16f, 2.4f, 24f), _gridGold);
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S4_GuardLast", 4, EnemyKind.Trooper, new Vector3(ox, 10.2f, 134f), Quaternion.Euler(0, 180f, 0));
+            SpawnGoalPortal(4, new Vector3(ox, 10.2f, 146f));
+        }
+
+        // =====================================================================
+        // STAGE 5: SKY FORTRESS (MULTI-WAVE ENEMIES + CITADEL CORE BOSS)
+        // =====================================================================
+        private static void BuildStage5(float ox)
+        {
+            CreateBlock("S5_Start", new Vector3(ox, 0f, 5f), new Vector3(12f, 2f, 18f), _gridCyan);
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_IntroDrone", 5, EnemyKind.Drone, new Vector3(ox, 2.4f, 11f), Quaternion.Euler(0, 180f, 0));
+            SpawnJumpPad(new Vector3(ox, 1.05f, 12.5f), 20.0f);
+
+            // Skyway Bridge Deck 1
+            CreateBlock("S5_SkyBridge", new Vector3(ox, 7.5f, 36f), new Vector3(14f, 2f, 28f), _gridCyan);
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S5_T1", 5, EnemyKind.Trooper, new Vector3(ox - 3.5f, 8.5f, 30f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S5_T2", 5, EnemyKind.Trooper, new Vector3(ox + 3.5f, 8.5f, 34f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_D1", 5, EnemyKind.Drone, new Vector3(ox, 10.8f, 38f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S5_T3", 5, EnemyKind.Trooper, new Vector3(ox, 8.5f, 44f), Quaternion.Euler(0, 180f, 0));
+
+            // Dual Wall-Run Ascent with Mid-Air Targets
+            CreateBlock("S5_WallL", new Vector3(ox - 6.5f, 12.5f, 64f), new Vector3(1.2f, 9f, 26f), _gridMagenta, isWallRun: true);
+            CreateBlock("S5_WallR", new Vector3(ox + 6.5f, 12.5f, 64f), new Vector3(1.2f, 9f, 26f), _gridMagenta, isWallRun: true);
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_D2", 5, EnemyKind.Drone, new Vector3(ox - 2.5f, 13.5f, 60f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_D3", 5, EnemyKind.Drone, new Vector3(ox + 2.5f, 14.0f, 69f), Quaternion.Euler(0, 180f, 0));
+            SpawnGrapple(new Vector3(ox, 18.5f, 80f));
+
+            // Grand Sky Fortress Citadel
+            CreateBlock("S5_FortressDeck", new Vector3(ox, 11.0f, 108f), new Vector3(38f, 2.6f, 38f), _gridMagenta);
+            SpawnCyberEnemy("Assets/Models/Cyber_CoreBoss.fbx", "S5_FortressArchonBoss", 5, EnemyKind.CoreBoss, new Vector3(ox, 12.8f, 112f), Quaternion.Euler(0, 180f, 0), hp: 10);
+
+            // 2 Flanking Shield Pylons + Citadel Escort Squad
+            Vector3[] s5Pylons = { new Vector3(ox - 16f, 14.2f, 108f), new Vector3(ox + 16f, 14.2f, 108f) };
+            for (int i = 0; i < s5Pylons.Length; i++)
+            {
+                CreateBlock($"S5_PylonPlat_{i}", s5Pylons[i], new Vector3(7f, 1.6f, 7f), _gridGold);
+                SpawnCyberEnemy("Assets/Models/Grapple_Anchor.fbx", $"S5_ShieldPylon_{i}", 5, EnemyKind.ShieldPylon, s5Pylons[i] + new Vector3(0f, 2.2f, 0f), Quaternion.identity);
+                SpawnGrapple(s5Pylons[i] + new Vector3(0f, 5.4f, -3f));
+            }
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S5_CitadelT1", 5, EnemyKind.Trooper, new Vector3(ox - 7f, 12.3f, 98f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Trooper.fbx", "S5_CitadelT2", 5, EnemyKind.Trooper, new Vector3(ox + 7f, 12.3f, 98f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_CitadelD1", 5, EnemyKind.Drone, new Vector3(ox - 8f, 15.2f, 105f), Quaternion.Euler(0, 180f, 0));
+            SpawnCyberEnemy("Assets/Models/Cyber_Drone.fbx", "S5_CitadelD2", 5, EnemyKind.Drone, new Vector3(ox + 8f, 15.2f, 105f), Quaternion.Euler(0, 180f, 0));
+        }
+
+        // =====================================================================
         // STAGE 4: CYBER COMBAT ARENA (VS CPU, LOCAL 2P SPLIT-SCREEN & LAN PVP)
         // =====================================================================
         private static void BuildBattleArena(float ox)
@@ -471,7 +551,7 @@ namespace CyberRush.Editor
         private static void BuildNeonSkylineBackdrop()
         {
             Random.InitState(2077);
-            float[] stageCentersX = { 0f, 120f, 240f, 360f };
+            float[] stageCentersX = { 0f, 120f, 240f, 360f, 480f, 600f };
             foreach (float sx in stageCentersX)
             {
                 for (int i = 0; i < 24; i++)

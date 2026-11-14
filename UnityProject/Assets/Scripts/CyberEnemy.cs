@@ -174,7 +174,8 @@ namespace CyberRush
             }
 
             IsDead = true;
-            CyberAudio.Play("explosion", kind == EnemyKind.CoreBoss ? 1.15f : 0.85f);
+            bool isBoss = kind == EnemyKind.CoreBoss;
+            CyberAudio.Play(isBoss ? "boss_kill" : "kill_deluxe", isBoss ? 1.15f : 1.0f, 0.04f);
             foreach (var r in GetComponentsInChildren<Renderer>()) r.enabled = false;
             foreach (var c in GetComponentsInChildren<Collider>()) c.enabled = false;
 
@@ -182,8 +183,9 @@ namespace CyberRush
                 ? new Color(1.0f, 0.22f, 0.45f)
                 : (kind == EnemyKind.ShieldPylon ? new Color(0.15f, 0.95f, 1.0f) : new Color(1.0f, 0.18f, 0.72f));
 
-            CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 1.2f, fxCol, kind == EnemyKind.CoreBoss ? 28 : 14);
-            CyberVFX.TriggerHitStop(this, kind == EnemyKind.CoreBoss ? 0.08f : 0.045f, 0.06f);
+            CyberVFX.SpawnShatterExplosion(this, transform.position + Vector3.up * 1.2f, fxCol, isBoss ? 36 : 20);
+            CyberVFX.SpawnRingPulse(this, transform.position + Vector3.up * 1.0f, fxCol, isBoss ? 10.5f : 5.2f, isBoss ? 0.55f : 0.32f);
+            CyberVFX.TriggerStylishKillSlowMo(isBoss);
 
             if (attacker != null)
             {
